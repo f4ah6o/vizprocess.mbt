@@ -61,6 +61,18 @@ All notable changes to this project will be documented in this file.
   `brew` (macOS) / DuckDB release zip (Ubuntu).
 - M6 fixture: golden test reuses `fixtures/datasets/sales.csv` and
   matches the M1 dataset JSON byte-equal.
+- M6.5: manifest loader now recognizes `"kind": "duckdb"` sources
+  (`{"db": "...", "sql": "...", "schema": {...}}`).
+  `build_process_from_json` takes a `duckdb_runner` injection so
+  `vizprocess` stays target-agnostic; the CLI passes a
+  `pipe-duckdb`-backed runner. `:memory:` is recognized verbatim;
+  other db paths are resolved relative to the manifest directory.
+- M6.5 fixture: `fixtures/specs/sales-bar-duckdb.process.json`. CLI
+  smoke run reproduces the M3 SVG byte-equal via DuckDB SQL.
+- Note: paths inside SQL strings (e.g. `read_csv('...')`) resolve
+  against the CLI's working directory, not the manifest directory —
+  unlike `csv-file` paths which use the manifest directory. Document
+  per-fixture or migrate to absolute paths.
 - API change: `pub` structs and enums in `pipe` and `viz` are now `pub(all)`
   so external consumers (notably `vizprocess`) can construct and destructure
   them. Functions remain `pub`.

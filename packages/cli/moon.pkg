@@ -1,5 +1,6 @@
 import {
   "f4ah6o/vizprocess/pipe" @pipe,
+  "f4ah6o/vizprocess/pipe-duckdb" @pipe_duckdb,
   "f4ah6o/vizprocess/viz" @viz,
   "f4ah6o/vizprocess/vizprocess" @vizprocess,
   "moonbitlang/x/fs",
@@ -8,4 +9,9 @@ import {
 
 options(
   "is-main": true,
+  link: {
+    "native": {
+      "cc-link-flags": "-L/opt/homebrew/lib -Wl,-rpath,/opt/homebrew/lib -L/usr/local/lib -Wl,-rpath,/usr/local/lib -L/usr/lib -lduckdb",
+    },
+  },
 )

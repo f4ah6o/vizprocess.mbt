@@ -42,7 +42,11 @@ test "build_process_from_json: full sales-bar manifest with inline csv" {
   let reader : (String) -> Result[String, String] = fn(_p) {
     Err("csv-file not used in this test")
   }
-  let process = match build_process_from_json(manifest, reader) {
+  let runner : (String, String, @pipe.DataSchema) -> Result[
+    @pipe.Dataset,
+    String,
+  ] = fn(_db, _sql, _schema) { Err("duckdb not used in this test") }
+  let process = match build_process_from_json(manifest, reader, runner) {
     Ok(p) => p
     Err(e) => abort("parse failed: " + e)
   }
@@ -74,10 +78,53 @@ test "build_process_from_json reports unknown filter op" {
     #|  "artifacts": []
     #|}
   let reader : (String) -> Result[String, String] = fn(_) { Err("unused") }
-  let result = build_process_from_json(manifest, reader)
+  let runner : (String, String, @pipe.DataSchema) -> Result[
+    @pipe.Dataset,
+    String,
+  ] = fn(_db, _sql, _schema) { Err("unused") }
+  let result = build_process_from_json(manifest, reader, runner)
   match result {
     Err(e) => inspect(e.contains("unknown filter op 'lt'"), content="true")
     Ok(_) => abort("expected Err")
+  }
+}
+
+///|
+test "build_process_from_json invokes duckdb runner for duckdb source" {
+  let manifest =
+    #|{
+    #|  "id": "x",
+    #|  "datasets": [{
+    #|    "id": "d",
+    #|    "source": {"kind": "duckdb", "db": "file.db",
+    #|               "sql": "SELECT 1 AS x",
+    #|               "schema": {"fields": [{"name": "x", "dtype": "int"}]}},
+    #|    "pipeline": {"steps": []}
+    #|  }],
+    #|  "charts": [],
+    #|  "artifacts": []
+    #|}
+  let captured_db : Ref[String] = { val: "" }
+  let captured_sql : Ref[String] = { val: "" }
+  let reader : (String) -> Result[String, String] = fn(_) { Err("unused") }
+  let runner : (String, String, @pipe.DataSchema) -> Result[
+    @pipe.Dataset,
+    String,
+  ] = fn(db, sql, schema) {
+    captured_db.val = db
+    captured_sql.val = sql
+    let cols : Map[String, Array[@pipe.Value]] = Map::new()
+    cols["x"] = [@pipe.VInt(42L)]
+    Ok({ schema, columns: cols, n_rows: 1 })
+  }
+  let result = build_process_from_json(manifest, reader, runner)
+  match result {
+    Ok(p) => {
+      inspect(captured_db.val, content="file.db")
+      inspect(captured_sql.val, content="SELECT 1 AS x")
+      inspect(p.datasets[0].source.n_rows, content="1")
+    }
+    Err(e) => abort("parse failed: " + e)
   }
 }
 
@@ -100,7 +147,11 @@ test "build_process_from_json invokes csv reader for csv-file source" {
     captured.val = p
     Ok("x\nhello\n")
   }
-  let result = build_process_from_json(manifest, reader)
+  let runner : (String, String, @pipe.DataSchema) -> Result[
+    @pipe.Dataset,
+    String,
+  ] = fn(_db, _sql, _schema) { Err("unused") }
+  let result = build_process_from_json(manifest, reader, runner)
   match result {
     Ok(_) => inspect(captured.val, content="data.csv")
     Err(e) => abort("parse failed: " + e)

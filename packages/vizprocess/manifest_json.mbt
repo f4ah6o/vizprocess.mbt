@@ -48,6 +48,10 @@
 pub fn build_process_from_json(
   json_text : String,
   csv_reader : (String) -> Result[String, String],
+  duckdb_runner : (String, String, @pipe.DataSchema) -> Result[
+    @pipe.Dataset,
+    String,
+  ],
 ) -> Result[VizProcess, String] {
   let parsed : Result[Json, _] = try? @json.parse(json_text)
   let root = match parsed {
@@ -69,7 +73,8 @@ pub fn build_process_from_json(
   }
   for i in 0..<raw_datasets.length() {
     let prefix = "$.datasets[" + i.to_string() + "]"
-    match parse_dataset_node(raw_datasets[i], prefix, csv_reader) {
+    match
+      parse_dataset_node(raw_datasets[i], prefix, csv_reader, duckdb_runner) {
       Ok(node) => datasets.push(node)
       Err(e) => return Err(e)
     }
@@ -106,6 +111,10 @@ fn parse_dataset_node(
   json : Json,
   prefix : String,
   csv_reader : (String) -> Result[String, String],
+  duckdb_runner : (String, String, @pipe.DataSchema) -> Result[
+    @pipe.Dataset,
+    String,
+  ],
 ) -> Result[DatasetNode, String] {
   let obj = match json {
     Json::Object(m) => m
@@ -119,20 +128,10 @@ fn parse_dataset_node(
     Some(j) => j
     None => return Err(prefix + ".source: missing")
   }
-  let (csv_text, schema) = match
-    parse_source(source_json, prefix + ".source", csv_reader) {
-    Ok(v) => v
+  let raw_dataset = match
+    resolve_source(source_json, prefix + ".source", csv_reader, duckdb_runner) {
+    Ok(d) => d
     Err(e) => return Err(e)
-  }
-  let (raw_dataset, parse_diags) = @pipe.parse_csv(csv_text, schema)
-  if parse_diags.length() > 0 {
-    return Err(
-      prefix +
-      ".source: csv parse produced " +
-      parse_diags.length().to_string() +
-      " diagnostic(s); first: " +
-      parse_diags[0].message,
-    )
   }
   let pipeline_json = match obj.get("pipeline") {
     Some(j) => j
@@ -146,11 +145,15 @@ fn parse_dataset_node(
 }
 
 ///|
-fn parse_source(
+fn resolve_source(
   json : Json,
   prefix : String,
   csv_reader : (String) -> Result[String, String],
-) -> Result[(String, @pipe.DataSchema), String] {
+  duckdb_runner : (String, String, @pipe.DataSchema) -> Result[
+    @pipe.Dataset,
+    String,
+  ],
+) -> Result[@pipe.Dataset, String] {
   let obj = match json {
     Json::Object(m) => m
     _ => return Err(prefix + ": expected object")
@@ -173,20 +176,54 @@ fn parse_source(
         Ok(s) => s
         Err(e) => return Err(e)
       }
-      match csv_reader(path) {
-        Ok(text) => Ok((text, schema))
-        Err(e) => Err(prefix + ".path: cannot read '" + path + "': " + e)
+      let text = match csv_reader(path) {
+        Ok(t) => t
+        Err(e) => return Err(prefix + ".path: cannot read '" + path + "': " + e)
       }
+      csv_to_dataset(text, schema, prefix)
     }
     "csv-inline" => {
       let data = match expect_string(obj, "data", prefix + ".data") {
         Ok(s) => s
         Err(e) => return Err(e)
       }
-      Ok((data, schema))
+      csv_to_dataset(data, schema, prefix)
+    }
+    "duckdb" => {
+      let db_path = match expect_string(obj, "db", prefix + ".db") {
+        Ok(s) => s
+        Err(e) => return Err(e)
+      }
+      let sql = match expect_string(obj, "sql", prefix + ".sql") {
+        Ok(s) => s
+        Err(e) => return Err(e)
+      }
+      match duckdb_runner(db_path, sql, schema) {
+        Ok(d) => Ok(d)
+        Err(e) => Err(prefix + ".sql: " + e)
+      }
     }
     _ => Err(prefix + ".kind: unknown source kind '" + kind + "'")
   }
+}
+
+///|
+fn csv_to_dataset(
+  text : String,
+  schema : @pipe.DataSchema,
+  prefix : String,
+) -> Result[@pipe.Dataset, String] {
+  let (dataset, parse_diags) = @pipe.parse_csv(text, schema)
+  if parse_diags.length() > 0 {
+    return Err(
+      prefix +
+      ": csv parse produced " +
+      parse_diags.length().to_string() +
+      " diagnostic(s); first: " +
+      parse_diags[0].message,
+    )
+  }
+  Ok(dataset)
 }
 
 ///|

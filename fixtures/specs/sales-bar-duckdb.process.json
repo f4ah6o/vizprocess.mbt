@@ -1,0 +1,38 @@
+{
+  "id": "monthly-sales-duckdb",
+  "datasets": [
+    {
+      "id": "monthly_sales",
+      "source": {
+        "kind": "duckdb",
+        "db": ":memory:",
+        "sql": "SELECT month, SUM(amount)::INT AS total FROM read_csv('fixtures/datasets/sales.csv', header=true) WHERE region = 'JP' GROUP BY month ORDER BY month",
+        "schema": {
+          "fields": [
+            {"name": "month", "dtype": "string"},
+            {"name": "total", "dtype": "int"}
+          ]
+        }
+      },
+      "pipeline": {"steps": []}
+    }
+  ],
+  "charts": [
+    {
+      "id": "sales-bar",
+      "dataset_id": "monthly_sales",
+      "spec": {
+        "id": "sales-bar",
+        "mark": "bar",
+        "encoding": {
+          "x": {"field": "month"},
+          "y": {"field": "total"}
+        },
+        "config": {"width": 480, "height": 240}
+      }
+    }
+  ],
+  "artifacts": [
+    {"id": "svg", "kind": "svg", "chart_id": "sales-bar"}
+  ]
+}

@@ -68,8 +68,28 @@ fn cmd_process_run(args : Array[String]) -> Int {
     let abs = if manifest_dir == "" { rel } else { manifest_dir + "/" + rel }
     read_file(abs)
   }
+  let duckdb_runner : (String, String, @pipe.DataSchema) -> Result[
+    @pipe.Dataset,
+    String,
+  ] = fn(db, sql, schema) {
+    let resolved_db = if db == ":memory:" || manifest_dir == "" {
+      db
+    } else {
+      manifest_dir + "/" + db
+    }
+    let (dataset, diags) = @pipe_duckdb.query_to_dataset(
+      resolved_db, sql, schema,
+    )
+    if diags.length() > 0 {
+      Err(diags[0].message)
+    } else {
+      Ok(dataset)
+    }
+  }
   let process = match
-    @vizprocess.build_process_from_json(manifest_text, csv_reader) {
+    @vizprocess.build_process_from_json(
+      manifest_text, csv_reader, duckdb_runner,
+    ) {
     Ok(p) => p
     Err(e) => {
       println("error: invalid manifest: " + e)
