@@ -1,0 +1,20 @@
+{
+  "name": "vizprocess-mbt",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Cloudflare Worker deployment tooling for the vizprocess.mbt browser demo",
+  "type": "module",
+  "packageManager": "pnpm@10.29.3",
+  "engines": {
+    "node": ">=20"
+  },
+  "scripts": {
+    "build:cloudflare-demo-assets": "node scripts/build-cloudflare-demo.mjs",
+    "dev:worker": "wrangler dev --env=\"\"",
+    "deploy:worker": "wrangler deploy --env production",
+    "deploy:preview-worker": "wrangler deploy --env preview"
+  },
+  "devDependencies": {
+    "wrangler": "^4.14.4"
+  }
+}

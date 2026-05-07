@@ -1,0 +1,26 @@
+{
+  "$schema": "./node_modules/wrangler/config-schema.json",
+  "name": "vizprocess-browser-demo",
+  "main": "./examples/browser-demo/worker.mjs",
+  "compatibility_date": "2026-05-07",
+  "assets": {
+    "binding": "ASSETS",
+    "directory": "./_build/cloudflare/browser-demo",
+    "html_handling": "auto-trailing-slash",
+    "not_found_handling": "404-page"
+  },
+  "env": {
+    "preview": {
+      "name": "vizprocess-browser-demo-preview"
+    },
+    "production": {
+      "name": "vizprocess-browser-demo",
+      "routes": [
+        {
+          "pattern": "vizprocess.f12o.com",
+          "custom_domain": true
+        }
+      ]
+    }
+  }
+}
