@@ -1,0 +1,16 @@
+{
+  "name": "f4ah6o/vizprocess",
+  "version": "0.1.0",
+  "readme": "README.md",
+  "repository": "https://github.com/f4ah6o/vizprocess.mbt",
+  "license": "Apache-2.0",
+  "keywords": [
+    "visualization",
+    "data-pipeline",
+    "chart",
+    "svg",
+    "duckdb"
+  ],
+  "description": "MoonBit monorepo for reproducible data visualization processes (pipe / viz / vizprocess / cli).",
+  "source": "packages"
+}

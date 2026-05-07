@@ -1,0 +1,7 @@
+import {
+  "f4ah6o/vizprocess/vizprocess" @vizprocess,
+}
+
+options(
+  "is-main": true,
+)
