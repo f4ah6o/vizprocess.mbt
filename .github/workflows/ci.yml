@@ -59,3 +59,12 @@ jobs:
 
       - name: Build wasm-gc bridge
         run: moon build --target wasm-gc
+
+      - name: Build js bridge (release)
+        run: moon build --target js --release
+
+      - name: Smoke test js bridge from Node
+        run: |
+          out=$(node examples/browser-demo/node-smoke.mjs)
+          expected=$(cat fixtures/expected/sales-bar.svg)
+          test "$out" = "$expected"

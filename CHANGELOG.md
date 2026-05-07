@@ -86,6 +86,13 @@ All notable changes to this project will be documented in this file.
   `wasm_stub.mbt` providing an empty `main` for non-native targets so
   `moon check --target wasm-gc` does not trip on the CLI's
   native-only imports (`@fs`, `@sys`, `@pipe_duckdb`).
+- M7.5: `packages/wasm` now also builds for the `js` target with
+  `use-js-builtin-string`, exposing `manifest_to_svg` as a plain JS
+  function that takes/returns native JS strings. Added an HTML demo
+  (`examples/browser-demo/index.html`) that imports the ESM build
+  directly and re-renders on edit, plus a `node-smoke.mjs` that runs
+  the same flow from Node and is wired into CI to compare against
+  `fixtures/expected/sales-bar.svg`.
 - API change: `pub` structs and enums in `pipe` and `viz` are now `pub(all)`
   so external consumers (notably `vizprocess`) can construct and destructure
   them. Functions remain `pub`.
