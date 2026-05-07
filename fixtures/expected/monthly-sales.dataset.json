@@ -1,0 +1,1 @@
+{"rows":[{"month":"2026-01","total":175},{"month":"2026-02","total":200}],"schema":{"fields":[{"dtype":"string","name":"month"},{"dtype":"int","name":"total"}]}}

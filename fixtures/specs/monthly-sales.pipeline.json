@@ -1,0 +1,24 @@
+{
+  "source": {
+    "kind": "csv",
+    "path": "fixtures/datasets/sales.csv",
+    "schema": {
+      "fields": [
+        {"dtype": "string", "name": "month"},
+        {"dtype": "string", "name": "region"},
+        {"dtype": "int", "name": "amount"}
+      ]
+    }
+  },
+  "steps": [
+    {"type": "select", "fields": ["month", "region", "amount"]},
+    {"type": "filter", "field": "region", "op": "eq", "value": "JP"},
+    {
+      "type": "aggregate",
+      "group_by": ["month"],
+      "measures": [
+        {"field": "amount", "op": "sum", "as": "total"}
+      ]
+    }
+  ]
+}
