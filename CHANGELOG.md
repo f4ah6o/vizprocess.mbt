@@ -26,3 +26,8 @@ All notable changes to this project will be documented in this file.
   point counts.
 - M2 fixtures: `fixtures/specs/sales-bar.chart.json`,
   `fixtures/expected/sales-bar.render-model.json`.
+- M3 (`viz`): `render_svg` produces a deterministic single-line SVG document
+  from a `RenderModel`. Rect and polyline output only; axes, legends, and
+  per-mark styling deferred. Golden white-box tests cover the bar and line
+  cases.
+- M3 fixture: `fixtures/expected/sales-bar.svg`.
