@@ -31,6 +31,15 @@ All notable changes to this project will be documented in this file.
   per-mark styling deferred. Golden white-box tests cover the bar and line
   cases.
 - M3 fixture: `fixtures/expected/sales-bar.svg`.
+- M5a (`cli`): runnable command line `vizprocess process-run <csv-path>
+  <output-dir>` that reads a CSV from disk, runs the hardcoded sales-bar
+  process, writes SVG / render-model JSON / dataset JSON artifacts to
+  the output directory, and prints a deterministic status JSON to
+  stdout. Exit codes follow the project spec (§20). The full manifest
+  JSON loader is deferred to M5b.
+- Note: MoonBit's `<` / `>` on `String` compares by length rather than
+  lexicographically. The CLI now uses an explicit `lex_compare` helper
+  for byte-stable artifact ordering.
 - API change: `pub` structs and enums in `pipe` and `viz` are now `pub(all)`
   so external consumers (notably `vizprocess`) can construct and destructure
   them. Functions remain `pub`.

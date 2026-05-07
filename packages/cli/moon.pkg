@@ -1,5 +1,9 @@
 import {
+  "f4ah6o/vizprocess/pipe" @pipe,
+  "f4ah6o/vizprocess/viz" @viz,
   "f4ah6o/vizprocess/vizprocess" @vizprocess,
+  "moonbitlang/x/fs",
+  "moonbitlang/x/sys",
 }
 
 options(
