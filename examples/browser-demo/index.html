@@ -152,9 +152,15 @@
             source: {
               kind: "duckdb",
               db: ":memory:",
+              // Inline VALUES so DuckDB-Wasm's virtual filesystem isn't
+              // involved. Run the same aggregation the csv-file example
+              // does; the result is fed back through csv-inline.
               sql:
-                "SELECT month, SUM(amount)::INT AS total FROM " +
-                "read_csv('../../fixtures/datasets/sales.csv', header=true) " +
+                "SELECT month, SUM(amount)::INT AS total FROM (VALUES " +
+                "('2026-01','JP',100),('2026-01','US',50)," +
+                "('2026-02','JP',200),('2026-02','US',150)," +
+                "('2026-01','JP',75)" +
+                ") AS t(month, region, amount) " +
                 "WHERE region = 'JP' GROUP BY month ORDER BY month",
               schema: {
                 fields: [
@@ -163,7 +169,7 @@
                 ],
               },
             },
-            // Pipeline is empty: the SQL already produced the final shape.
+            // SQL already produced the final shape; no extra steps.
             pipeline: { steps: [] },
           },
         ],

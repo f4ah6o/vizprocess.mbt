@@ -14,17 +14,21 @@ python3 -m http.server 8080
 
 The page edits a JSON manifest in-place and re-renders on click.
 
-## Smoke test (no browser)
-
-`node-smoke.mjs` does the same thing from Node:
+## Smoke tests (no browser)
 
 ```bash
 moon build --target js --release
-node examples/browser-demo/node-smoke.mjs
-```
 
-It prints the resulting SVG, which should match
-`fixtures/expected/sales-bar.svg`.
+# csv-file path (fs.readFile reader): prints SVG matching
+# fixtures/expected/sales-bar.svg.
+node examples/browser-demo/node-smoke.mjs
+
+# duckdb path with a mock runner: validates that
+# prefetchManifestSources rewrites a duckdb source into csv-inline
+# the wasm bridge accepts. Booting DuckDB-Wasm itself isn't part of
+# the test (Node uses the native pipe-duckdb binding for that).
+node examples/browser-demo/duckdb-prefetch-smoke.mjs
+```
 
 ## How sources are resolved
 

@@ -112,6 +112,14 @@ All notable changes to this project will be documented in this file.
   function-only signature still works for csv-only callers).
 - Note: DuckDB-Wasm path requires unquoted-CSV-safe string cells; the
   loader throws if a value contains `,`, `"`, `\n`, or `\r`.
+- M7.7 polish: the demo's duckdb manifest now uses `VALUES (...)` so
+  it does not depend on DuckDB-Wasm's virtual filesystem (the
+  `read_csv('...')` path needed pre-registered files in browsers).
+  Added `examples/browser-demo/duckdb-prefetch-smoke.mjs`, a Node test
+  with a mock duckdbRunner that proves `prefetchManifestSources`
+  rewrites a duckdb source into the csv-inline shape the wasm bridge
+  expects, and renders the M3 SVG byte-equal. CI runs it on every
+  push so the duckdb path stays correct without booting DuckDB-Wasm.
 - API change: `pub` structs and enums in `pipe` and `viz` are now `pub(all)`
   so external consumers (notably `vizprocess`) can construct and destructure
   them. Functions remain `pub`.

@@ -68,3 +68,6 @@ jobs:
           out=$(node examples/browser-demo/node-smoke.mjs)
           expected=$(cat fixtures/expected/sales-bar.svg)
           test "$out" = "$expected"
+
+      - name: Smoke test duckdb prefetch path from Node (mock runner)
+        run: node examples/browser-demo/duckdb-prefetch-smoke.mjs
