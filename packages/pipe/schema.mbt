@@ -2,7 +2,7 @@
 /// Logical data types. M1 supports the integer and string subset; richer
 /// types (Float, Date, etc.) arrive once deterministic formatting is in
 /// place.
-pub enum DataType {
+pub(all) enum DataType {
   TString
   TInt
 } derive(Eq, Show)
@@ -18,7 +18,7 @@ pub fn DataType::name(self : DataType) -> String {
 ///|
 /// A single value in a row. `VNull` is used when a column is nullable; M1
 /// fixtures do not produce nulls.
-pub enum Value {
+pub(all) enum Value {
   VString(String)
   VInt(Int64)
   VNull
@@ -34,13 +34,13 @@ pub fn Value::data_type(self : Value) -> DataType? {
 }
 
 ///|
-pub struct FieldSchema {
+pub(all) struct FieldSchema {
   name : String
   dtype : DataType
 } derive(Eq, Show)
 
 ///|
-pub struct DataSchema {
+pub(all) struct DataSchema {
   fields : Array[FieldSchema]
 } derive(Eq, Show)
 

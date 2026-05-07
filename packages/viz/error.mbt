@@ -1,12 +1,12 @@
 ///|
-pub enum Severity {
+pub(all) enum Severity {
   ERROR
   WARNING
   INFO
 } derive(Eq, Show)
 
 ///|
-pub struct Diagnostic {
+pub(all) struct Diagnostic {
   code : String
   severity : Severity
   target : String

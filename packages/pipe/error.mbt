@@ -1,6 +1,6 @@
 ///|
 /// Diagnostic severity.
-pub enum Severity {
+pub(all) enum Severity {
   ERROR
   WARNING
   INFO
@@ -10,7 +10,7 @@ pub enum Severity {
 /// Structured diagnostic shared across all packages. `code` is a stable
 /// machine-readable identifier; `target` points at the offending element
 /// (e.g. "steps[2].field"). `message` is human-readable.
-pub struct Diagnostic {
+pub(all) struct Diagnostic {
   code : String
   severity : Severity
   target : String

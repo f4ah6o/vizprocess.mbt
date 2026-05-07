@@ -31,3 +31,15 @@ All notable changes to this project will be documented in this file.
   per-mark styling deferred. Golden white-box tests cover the bar and line
   cases.
 - M3 fixture: `fixtures/expected/sales-bar.svg`.
+- API change: `pub` structs and enums in `pipe` and `viz` are now `pub(all)`
+  so external consumers (notably `vizprocess`) can construct and destructure
+  them. Functions remain `pub`.
+- M4 (`vizprocess`): manifest types (`VizProcess`, `DatasetNode`,
+  `ChartNode`, `ArtifactNode`, `ArtifactKind`, `OutputTarget`), a
+  `pipe.Dataset → viz.VizDataset` adapter (`dataset_to_viz`), and
+  `run_process` orchestrating dataset pipelines, chart compilation, and
+  artifact rendering. Diagnostics from every layer are aggregated and
+  sorted by `(source, code, target)`. Artifacts (`AkSvg`,
+  `AkRenderModelJson`, `AkDatasetJson`) currently land in memory only;
+  file / stdout output arrives in M5. Golden white-box test runs the full
+  pipeline → chart → SVG/JSON path and matches every M1–M3 golden.

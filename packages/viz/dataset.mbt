@@ -2,7 +2,7 @@
 /// `viz` consumes datasets through this row-oriented value, so it stays
 /// independent of `pipe`'s column-oriented `Dataset`. M4's `vizprocess`
 /// layer adapts `pipe.Dataset` to `VizDataset`.
-pub enum VizValue {
+pub(all) enum VizValue {
   VsString(String)
   VsInt(Int64)
 } derive(Eq, Show)
@@ -24,7 +24,7 @@ pub fn VizValue::as_int(self : VizValue) -> Int64? {
 }
 
 ///|
-pub struct VizDataset {
+pub(all) struct VizDataset {
   fields : Array[String]
   rows : Array[Array[VizValue]]
 } derive(Eq, Show)

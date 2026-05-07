@@ -1,5 +1,5 @@
 ///|
-pub struct VizResult {
+pub(all) struct VizResult {
   spec : ChartSpec
   model : RenderModel
   diagnostics : Array[Diagnostic]

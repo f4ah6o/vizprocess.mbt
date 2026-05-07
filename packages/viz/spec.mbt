@@ -1,5 +1,5 @@
 ///|
-pub enum Mark {
+pub(all) enum Mark {
   BAR
   LINE
 } derive(Eq, Show)
@@ -13,18 +13,18 @@ pub fn Mark::name(self : Mark) -> String {
 }
 
 ///|
-pub struct Channel {
+pub(all) struct Channel {
   field : String
 } derive(Eq, Show)
 
 ///|
-pub struct Encoding {
+pub(all) struct Encoding {
   x : Channel?
   y : Channel?
 } derive(Eq, Show)
 
 ///|
-pub struct ChartConfig {
+pub(all) struct ChartConfig {
   width : Int
   height : Int
 } derive(Eq, Show)
@@ -35,7 +35,7 @@ pub fn ChartConfig::default() -> ChartConfig {
 }
 
 ///|
-pub struct ChartSpec {
+pub(all) struct ChartSpec {
   id : String
   mark : Mark
   encoding : Encoding

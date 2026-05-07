@@ -1,7 +1,7 @@
 ///|
 /// Backend-independent, pixel-accurate model produced by `compile_chart`.
 /// All coordinates are integers so `RenderModel` JSON is byte-stable.
-pub struct RenderModel {
+pub(all) struct RenderModel {
   id : String
   width : Int
   height : Int
@@ -9,7 +9,7 @@ pub struct RenderModel {
 } derive(Eq, Show)
 
 ///|
-pub enum RenderLayer {
+pub(all) enum RenderLayer {
   RectLayer(Array[RectMark])
   LineLayer(Array[LinePoint])
 } derive(Eq, Show)
@@ -18,7 +18,7 @@ pub enum RenderLayer {
 /// Top-left x/y plus width/height in pixels. The `label` is a stable id
 /// derived from the encoding x category, used by renderers as the SVG
 /// element id.
-pub struct RectMark {
+pub(all) struct RectMark {
   label : String
   x : Int
   y : Int
@@ -27,7 +27,7 @@ pub struct RectMark {
 } derive(Eq, Show)
 
 ///|
-pub struct LinePoint {
+pub(all) struct LinePoint {
   label : String
   x : Int
   y : Int
