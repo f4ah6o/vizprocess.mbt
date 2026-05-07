@@ -20,7 +20,7 @@
       }
       textarea {
         width: 100%;
-        min-height: 320px;
+        min-height: 220px;
         font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
         font-size: 12px;
         padding: 0.5rem;
@@ -52,14 +52,15 @@
       <code>packages/wasm</code>
       module is built for the
       <code>js</code>
-      target and imported as a plain ES module. Edit the manifest below
-      and click
-      <strong>Render</strong>
-      to call
+      target and imported as a plain ES module. The manifest references
+      <code>fixtures/datasets/sales.csv</code>
+      via
+      <code>csv-file</code>
+      ; M7.6 resolves it client-side with
+      <code>fetch</code>
+      before calling
       <code>manifest_to_svg</code>
-      directly from the page. M7.5 supports
-      <code>csv-inline</code>
-      sources only.
+      .
     </p>
     <textarea id="manifest"></textarea>
     <button id="run">Render</button>
@@ -67,9 +68,15 @@
     <div id="output"></div>
     <h2>Source</h2>
     <pre id="raw"></pre>
+    <h2>Status</h2>
+    <pre id="status"></pre>
 
     <script type="module">
       import { manifest_to_svg } from "../../_build/js/release/build/wasm/wasm.js";
+      import {
+        prefetchManifestSources,
+        browserReader,
+      } from "./prefetch.mjs";
 
       const defaultManifest = {
         id: "monthly-sales",
@@ -77,14 +84,8 @@
           {
             id: "monthly_sales",
             source: {
-              kind: "csv-inline",
-              data:
-                "month,region,amount\n" +
-                "2026-01,JP,100\n" +
-                "2026-01,US,50\n" +
-                "2026-02,JP,200\n" +
-                "2026-02,US,150\n" +
-                "2026-01,JP,75\n",
+              kind: "csv-file",
+              path: "../../fixtures/datasets/sales.csv",
               schema: {
                 fields: [
                   { name: "month", dtype: "string" },
@@ -135,14 +136,25 @@
       const manifestEl = document.getElementById("manifest");
       const outputEl = document.getElementById("output");
       const rawEl = document.getElementById("raw");
+      const statusEl = document.getElementById("status");
       const runBtn = document.getElementById("run");
 
       manifestEl.value = JSON.stringify(defaultManifest, null, 2);
 
-      function render() {
-        const svg = manifest_to_svg(manifestEl.value);
-        outputEl.innerHTML = svg;
-        rawEl.textContent = svg;
+      const reader = browserReader(import.meta.url);
+
+      async function render() {
+        statusEl.textContent = "fetching csv-file sources…";
+        try {
+          const original = JSON.parse(manifestEl.value);
+          const resolved = await prefetchManifestSources(original, reader);
+          const svg = manifest_to_svg(JSON.stringify(resolved));
+          outputEl.innerHTML = svg;
+          rawEl.textContent = svg;
+          statusEl.textContent = "ok";
+        } catch (err) {
+          statusEl.textContent = "error: " + (err?.message ?? err);
+        }
       }
 
       runBtn.addEventListener("click", render);

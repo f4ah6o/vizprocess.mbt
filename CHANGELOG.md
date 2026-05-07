@@ -93,6 +93,13 @@ All notable changes to this project will be documented in this file.
   directly and re-renders on edit, plus a `node-smoke.mjs` that runs
   the same flow from Node and is wired into CI to compare against
   `fixtures/expected/sales-bar.svg`.
+- M7.6: JS-side `prefetchManifestSources` walker
+  (`examples/browser-demo/prefetch.mjs`) resolves `csv-file` sources
+  via a host-supplied async reader (`fetch` in the browser,
+  `fs.readFile` in Node) and rewrites them to `csv-inline` before the
+  sync wasm bridge sees them. The browser demo now references
+  `fixtures/datasets/sales.csv` directly; the Node smoke does the
+  same and still matches the M3 SVG byte-equal.
 - API change: `pub` structs and enums in `pipe` and `viz` are now `pub(all)`
   so external consumers (notably `vizprocess`) can construct and destructure
   them. Functions remain `pub`.

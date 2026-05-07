@@ -26,9 +26,19 @@ node examples/browser-demo/node-smoke.mjs
 It prints the resulting SVG, which should match
 `fixtures/expected/sales-bar.svg`.
 
-## Limitations (M7.5)
+## How sources are resolved
 
-- Only `csv-inline` sources work in this build. `csv-file` and `duckdb`
-  sources reject with a friendly error message.
-- DuckDB-WASM, OPFS storage, and `fetch`-backed CSV loading are tracked
-  for M7.6+.
+`packages/wasm` only knows `csv-inline`. The `prefetch.mjs` module
+walks a manifest, replaces every `csv-file` source with an inline
+equivalent (using a host-supplied reader), and the resolved manifest
+is what gets passed to `manifest_to_svg`.
+
+- Browser: `browserReader(import.meta.url)` resolves paths against the
+  page URL and uses `fetch`.
+- Node: `fs.readFile`-backed reader (see `node-smoke.mjs`).
+
+## Limitations
+
+- `duckdb` sources still report a friendly error in this build.
+  DuckDB-WASM is M7.7.
+- OPFS storage is M7.8.

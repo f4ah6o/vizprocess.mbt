@@ -1,8 +1,16 @@
-// Smoke test: load the js-target wasm bridge from Node and render the
-// canonical sales-bar SVG. Should output the same bytes as
-// fixtures/expected/sales-bar.svg.
+// Smoke test: run the same manifest the browser demo uses, but resolve
+// csv-file sources via fs.readFile instead of fetch. Output should match
+// fixtures/expected/sales-bar.svg byte-for-byte.
+
+import { readFile } from "node:fs/promises";
+import { fileURLToPath } from "node:url";
+import path from "node:path";
 
 import { manifest_to_svg } from "../../_build/js/release/build/wasm/wasm.js";
+import { prefetchManifestSources } from "./prefetch.mjs";
+
+const here = path.dirname(fileURLToPath(import.meta.url));
+const fsReader = (rel) => readFile(path.resolve(here, rel), "utf8");
 
 const manifest = {
   id: "monthly-sales",
@@ -10,14 +18,8 @@ const manifest = {
     {
       id: "monthly_sales",
       source: {
-        kind: "csv-inline",
-        data:
-          "month,region,amount\n" +
-          "2026-01,JP,100\n" +
-          "2026-01,US,50\n" +
-          "2026-02,JP,200\n" +
-          "2026-02,US,150\n" +
-          "2026-01,JP,75\n",
+        kind: "csv-file",
+        path: "../../fixtures/datasets/sales.csv",
         schema: {
           fields: [
             { name: "month", dtype: "string" },
@@ -61,5 +63,6 @@ const manifest = {
   artifacts: [{ id: "svg", kind: "svg", chart_id: "sales-bar" }],
 };
 
-const svg = manifest_to_svg(JSON.stringify(manifest));
+const resolved = await prefetchManifestSources(manifest, fsReader);
+const svg = manifest_to_svg(JSON.stringify(resolved));
 console.log(svg);
