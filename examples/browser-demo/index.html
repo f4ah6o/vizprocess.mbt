@@ -52,15 +52,21 @@
       <code>packages/wasm</code>
       module is built for the
       <code>js</code>
-      target and imported as a plain ES module. The manifest references
-      <code>fixtures/datasets/sales.csv</code>
-      via
+      target and imported as a plain ES module. The JS-side prefetch
+      resolves
       <code>csv-file</code>
-      ; M7.6 resolves it client-side with
+      sources via
       <code>fetch</code>
-      before calling
+      and
+      <code>duckdb</code>
+      sources via DuckDB-Wasm (lazy-loaded from jsDelivr) before
+      calling
       <code>manifest_to_svg</code>
       .
+    </p>
+    <p>
+      <button id="example-csv">csv-file example</button>
+      <button id="example-duckdb">duckdb example</button>
     </p>
     <textarea id="manifest"></textarea>
     <button id="run">Render</button>
@@ -77,8 +83,12 @@
         prefetchManifestSources,
         browserReader,
       } from "./prefetch.mjs";
+      import {
+        getDuckDbConnection,
+        duckdbQueryToCsv,
+      } from "./duckdb-loader.mjs";
 
-      const defaultManifest = {
+      const csvFileManifest = {
         id: "monthly-sales",
         datasets: [
           {
@@ -133,21 +143,54 @@
         ],
       };
 
+      const duckdbManifest = {
+        ...csvFileManifest,
+        id: "monthly-sales-duckdb",
+        datasets: [
+          {
+            id: "monthly_sales",
+            source: {
+              kind: "duckdb",
+              db: ":memory:",
+              sql:
+                "SELECT month, SUM(amount)::INT AS total FROM " +
+                "read_csv('../../fixtures/datasets/sales.csv', header=true) " +
+                "WHERE region = 'JP' GROUP BY month ORDER BY month",
+              schema: {
+                fields: [
+                  { name: "month", dtype: "string" },
+                  { name: "total", dtype: "int" },
+                ],
+              },
+            },
+            // Pipeline is empty: the SQL already produced the final shape.
+            pipeline: { steps: [] },
+          },
+        ],
+      };
+
       const manifestEl = document.getElementById("manifest");
       const outputEl = document.getElementById("output");
       const rawEl = document.getElementById("raw");
       const statusEl = document.getElementById("status");
       const runBtn = document.getElementById("run");
 
-      manifestEl.value = JSON.stringify(defaultManifest, null, 2);
+      manifestEl.value = JSON.stringify(csvFileManifest, null, 2);
 
-      const reader = browserReader(import.meta.url);
+      const csvReader = browserReader(import.meta.url);
+      const duckdbRunner = async (db, sql, schema) => {
+        const { conn } = await getDuckDbConnection();
+        return duckdbQueryToCsv(conn, sql, schema);
+      };
 
       async function render() {
-        statusEl.textContent = "fetching csv-file sources…";
+        statusEl.textContent = "resolving sources…";
         try {
           const original = JSON.parse(manifestEl.value);
-          const resolved = await prefetchManifestSources(original, reader);
+          const resolved = await prefetchManifestSources(original, {
+            csvReader,
+            duckdbRunner,
+          });
           const svg = manifest_to_svg(JSON.stringify(resolved));
           outputEl.innerHTML = svg;
           rawEl.textContent = svg;
@@ -158,6 +201,16 @@
       }
 
       runBtn.addEventListener("click", render);
+      document
+        .getElementById("example-csv")
+        .addEventListener("click", () => {
+          manifestEl.value = JSON.stringify(csvFileManifest, null, 2);
+        });
+      document
+        .getElementById("example-duckdb")
+        .addEventListener("click", () => {
+          manifestEl.value = JSON.stringify(duckdbManifest, null, 2);
+        });
       render();
     </script>
   </body>

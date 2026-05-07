@@ -37,8 +37,22 @@ is what gets passed to `manifest_to_svg`.
   page URL and uses `fetch`.
 - Node: `fs.readFile`-backed reader (see `node-smoke.mjs`).
 
+## DuckDB-Wasm
+
+`duckdb` sources are resolved by `duckdb-loader.mjs`, which lazy-loads
+[`@duckdb/duckdb-wasm`](https://www.npmjs.com/package/@duckdb/duckdb-wasm)
+from jsDelivr the first time a `duckdb` source appears in a manifest.
+The bundle pin lives at the top of `duckdb-loader.mjs`.
+
+Limitations of the JS-side path:
+
+- The result is re-encoded as unquoted CSV before reaching the wasm
+  bridge, so string columns must not contain `,`, `"`, `\n`, or `\r`.
+  The loader throws if it sees one.
+- Files referenced inside the SQL (e.g. `read_csv('../../fixtures/...')`)
+  resolve against DuckDB-Wasm's virtual filesystem, not the page URL —
+  use absolute or page-relative paths and serve the project root.
+
 ## Limitations
 
-- `duckdb` sources still report a friendly error in this build.
-  DuckDB-WASM is M7.7.
 - OPFS storage is M7.8.

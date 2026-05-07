@@ -100,6 +100,18 @@ All notable changes to this project will be documented in this file.
   sync wasm bridge sees them. The browser demo now references
   `fixtures/datasets/sales.csv` directly; the Node smoke does the
   same and still matches the M3 SVG byte-equal.
+- M7.7: `prefetchManifestSources` now also handles `duckdb` sources.
+  `examples/browser-demo/duckdb-loader.mjs` lazy-loads
+  `@duckdb/duckdb-wasm` from jsDelivr and exposes
+  `getDuckDbConnection()` + `duckdbQueryToCsv(conn, sql, schema)`,
+  which serializes query results back to unquoted CSV that the
+  existing wasm bridge ingests. The demo HTML offers a button to
+  swap in a duckdb manifest variant alongside the csv-file one. Node
+  keeps using the native `pipe-duckdb` path; `prefetchManifestSources`
+  takes a `{ csvReader, duckdbRunner }` object now (the legacy
+  function-only signature still works for csv-only callers).
+- Note: DuckDB-Wasm path requires unquoted-CSV-safe string cells; the
+  loader throws if a value contains `,`, `"`, `\n`, or `\r`.
 - API change: `pub` structs and enums in `pipe` and `viz` are now `pub(all)`
   so external consumers (notably `vizprocess`) can construct and destructure
   them. Functions remain `pub`.
