@@ -40,6 +40,15 @@ All notable changes to this project will be documented in this file.
 - Note: MoonBit's `<` / `>` on `String` compares by length rather than
   lexicographically. The CLI now uses an explicit `lex_compare` helper
   for byte-stable artifact ordering.
+- M5b (`vizprocess` + `cli`): full process-manifest JSON loader.
+  `vizprocess.build_process_from_json(json_text, csv_reader)` parses a
+  manifest covering datasets (csv-file or csv-inline source +
+  pipeline), charts, and artifacts, returning a runnable `VizProcess`.
+  Errors carry `$.path.to.field`-style path prefixes. The CLI now reads
+  a manifest file (`process-run <manifest.json> <output-dir>`) and
+  resolves csv-file paths relative to the manifest's directory.
+- M5b fixture: `fixtures/specs/sales-bar.process.json`. End-to-end CLI
+  smoke run reproduces the M1/M2/M3 goldens byte-equal.
 - API change: `pub` structs and enums in `pipe` and `viz` are now `pub(all)`
   so external consumers (notably `vizprocess`) can construct and destructure
   them. Functions remain `pub`.

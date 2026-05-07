@@ -1,0 +1,57 @@
+{
+  "id": "monthly-sales",
+  "datasets": [
+    {
+      "id": "monthly_sales",
+      "source": {
+        "kind": "csv-file",
+        "path": "../datasets/sales.csv",
+        "schema": {
+          "fields": [
+            {"name": "month", "dtype": "string"},
+            {"name": "region", "dtype": "string"},
+            {"name": "amount", "dtype": "int"}
+          ]
+        }
+      },
+      "pipeline": {
+        "steps": [
+          {"type": "select", "fields": ["month", "region", "amount"]},
+          {
+            "type": "filter",
+            "field": "region",
+            "op": "eq",
+            "value": {"dtype": "string", "v": "JP"}
+          },
+          {
+            "type": "aggregate",
+            "group_by": ["month"],
+            "measures": [
+              {"field": "amount", "op": "sum", "as": "total"}
+            ]
+          }
+        ]
+      }
+    }
+  ],
+  "charts": [
+    {
+      "id": "sales-bar",
+      "dataset_id": "monthly_sales",
+      "spec": {
+        "id": "sales-bar",
+        "mark": "bar",
+        "encoding": {
+          "x": {"field": "month"},
+          "y": {"field": "total"}
+        },
+        "config": {"width": 480, "height": 240}
+      }
+    }
+  ],
+  "artifacts": [
+    {"id": "dataset", "kind": "dataset-json", "chart_id": "sales-bar"},
+    {"id": "model", "kind": "render-model-json", "chart_id": "sales-bar"},
+    {"id": "svg", "kind": "svg", "chart_id": "sales-bar"}
+  ]
+}
