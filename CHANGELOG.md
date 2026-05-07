@@ -49,6 +49,18 @@ All notable changes to this project will be documented in this file.
   resolves csv-file paths relative to the manifest's directory.
 - M5b fixture: `fixtures/specs/sales-bar.process.json`. End-to-end CLI
   smoke run reproduces the M1/M2/M3 goldens byte-equal.
+- M6 (`pipe-duckdb`): new sibling package providing
+  `query_to_dataset(db_path, sql, schema)` that runs SQL against DuckDB
+  (`:memory:` or a path) and decodes the result into a `pipe.Dataset`.
+  Schema inference is intentionally deferred — the caller passes an
+  explicit `DataSchema`. A second helper `read_csv_sql(path, schema)`
+  composes a `SELECT … FROM read_csv(...)` query so tests can swap the
+  pure-MoonBit pipeline for a SQL-backed one. Native-only target gates
+  keep the `js` / `wasm-gc` builds free of the duckdb dependency.
+- M6 deps: adds `f4ah6o/duckdb@0.6.3`. CI installs `libduckdb` via
+  `brew` (macOS) / DuckDB release zip (Ubuntu).
+- M6 fixture: golden test reuses `fixtures/datasets/sales.csv` and
+  matches the M1 dataset JSON byte-equal.
 - API change: `pub` structs and enums in `pipe` and `viz` are now `pub(all)`
   so external consumers (notably `vizprocess`) can construct and destructure
   them. Functions remain `pub`.

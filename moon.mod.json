@@ -2,6 +2,7 @@
   "name": "f4ah6o/vizprocess",
   "version": "0.1.0",
   "deps": {
+    "f4ah6o/duckdb": "0.6.3",
     "moonbitlang/x": "0.4.43"
   },
   "readme": "README.md",

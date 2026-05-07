@@ -1,0 +1,19 @@
+import {
+  "f4ah6o/duckdb" @duckdb,
+  "f4ah6o/vizprocess/pipe" @pipe,
+}
+
+options(
+  "is-main": false,
+  link: {
+    "native": {
+      "cc-link-flags": "-L/opt/homebrew/lib -Wl,-rpath,/opt/homebrew/lib -L/usr/local/lib -Wl,-rpath,/usr/local/lib -L/usr/lib -lduckdb",
+      "stub-cc-flags": "-I/opt/homebrew/include -I/usr/local/include -I/usr/include",
+      "stub-cc-link-flags": "-L/opt/homebrew/lib -Wl,-rpath,/opt/homebrew/lib -L/usr/local/lib -Wl,-rpath,/usr/local/lib -L/usr/lib -lduckdb",
+    },
+  },
+  targets: {
+    "duckdb_source.mbt": [ "native" ],
+    "duckdb_source_wbtest.mbt": [ "native" ],
+  },
+)
