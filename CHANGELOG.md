@@ -120,6 +120,17 @@ All notable changes to this project will be documented in this file.
   rewrites a duckdb source into the csv-inline shape the wasm bridge
   expects, and renders the M3 SVG byte-equal. CI runs it on every
   push so the duckdb path stays correct without booting DuckDB-Wasm.
+- M7.8: `examples/browser-demo/opfs.mjs` exposes thin wrappers
+  around the Origin Private File System (`writeOpfsFile`,
+  `readOpfsFile`, `deleteOpfsFile`, `listOpfsFiles`, `clearOpfs`)
+  plus `opfsReader()`, which returns a `csvReader`-shaped function
+  that hits OPFS instead of the network. The demo gains
+  Seed / List / Clear buttons and an OPFS manifest variant whose
+  source path is `vizprocess/sales.csv`; the page picks OPFS or
+  fetch based on whether the manifest path looks origin-relative
+  (`./`, `../`, `/`) or not. OPFS is browser-only, so this path has
+  no Node smoke test — the reader contract is identical to the
+  fetch / fs readers and is already covered by M7.6 tests.
 - API change: `pub` structs and enums in `pipe` and `viz` are now `pub(all)`
   so external consumers (notably `vizprocess`) can construct and destructure
   them. Functions remain `pub`.

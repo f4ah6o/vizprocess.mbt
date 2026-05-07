@@ -67,6 +67,12 @@
     <p>
       <button id="example-csv">csv-file example</button>
       <button id="example-duckdb">duckdb example</button>
+      <button id="example-opfs">OPFS example</button>
+    </p>
+    <p>
+      <button id="opfs-seed">Seed sales.csv → OPFS</button>
+      <button id="opfs-list">List OPFS</button>
+      <button id="opfs-clear">Clear OPFS</button>
     </p>
     <textarea id="manifest"></textarea>
     <button id="run">Render</button>
@@ -87,6 +93,12 @@
         getDuckDbConnection,
         duckdbQueryToCsv,
       } from "./duckdb-loader.mjs";
+      import {
+        writeOpfsFile,
+        listOpfsFiles,
+        clearOpfs,
+        opfsReader,
+      } from "./opfs.mjs";
 
       const csvFileManifest = {
         id: "monthly-sales",
@@ -183,7 +195,34 @@
 
       manifestEl.value = JSON.stringify(csvFileManifest, null, 2);
 
-      const csvReader = browserReader(import.meta.url);
+      // OPFS variant: same shape as csvFileManifest but with a path
+      // that lives in the origin-private filesystem instead of the
+      // public site tree. Seed it with the "Seed sales.csv → OPFS"
+      // button before rendering.
+      const opfsManifest = {
+        ...csvFileManifest,
+        id: "monthly-sales-opfs",
+        datasets: [
+          {
+            ...csvFileManifest.datasets[0],
+            source: {
+              ...csvFileManifest.datasets[0].source,
+              path: "vizprocess/sales.csv",
+            },
+          },
+        ],
+      };
+
+      const fetchReader = browserReader(import.meta.url);
+      const opfsCsvReader = opfsReader();
+      // Use OPFS when the manifest path looks origin-relative
+      // (no leading ./ or ../), fall back to fetch otherwise.
+      const csvReader = async (path) => {
+        if (path.startsWith("./") || path.startsWith("../") || path.startsWith("/")) {
+          return await fetchReader(path);
+        }
+        return await opfsCsvReader(path);
+      };
       const duckdbRunner = async (db, sql, schema) => {
         const { conn } = await getDuckDbConnection();
         return duckdbQueryToCsv(conn, sql, schema);
@@ -216,6 +255,49 @@
         .getElementById("example-duckdb")
         .addEventListener("click", () => {
           manifestEl.value = JSON.stringify(duckdbManifest, null, 2);
+        });
+      document
+        .getElementById("example-opfs")
+        .addEventListener("click", () => {
+          manifestEl.value = JSON.stringify(opfsManifest, null, 2);
+        });
+      document
+        .getElementById("opfs-seed")
+        .addEventListener("click", async () => {
+          statusEl.textContent = "seeding OPFS…";
+          try {
+            const text = await fetchReader(
+              "../../fixtures/datasets/sales.csv",
+            );
+            await writeOpfsFile("vizprocess/sales.csv", text);
+            statusEl.textContent =
+              "wrote vizprocess/sales.csv to OPFS (" + text.length + " bytes)";
+          } catch (err) {
+            statusEl.textContent = "seed error: " + (err?.message ?? err);
+          }
+        });
+      document
+        .getElementById("opfs-list")
+        .addEventListener("click", async () => {
+          try {
+            const files = await listOpfsFiles("vizprocess");
+            statusEl.textContent =
+              files.length === 0
+                ? "OPFS vizprocess/ is empty"
+                : "OPFS vizprocess/ contains: " + files.join(", ");
+          } catch (err) {
+            statusEl.textContent = "list error: " + (err?.message ?? err);
+          }
+        });
+      document
+        .getElementById("opfs-clear")
+        .addEventListener("click", async () => {
+          try {
+            await clearOpfs();
+            statusEl.textContent = "OPFS cleared";
+          } catch (err) {
+            statusEl.textContent = "clear error: " + (err?.message ?? err);
+          }
         });
       render();
     </script>

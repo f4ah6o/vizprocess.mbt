@@ -57,6 +57,21 @@ Limitations of the JS-side path:
   resolve against DuckDB-Wasm's virtual filesystem, not the page URL —
   use absolute or page-relative paths and serve the project root.
 
-## Limitations
+## OPFS
 
-- OPFS storage is M7.8.
+`opfs.mjs` exposes a small wrapper around the Origin Private File
+System: `writeOpfsFile`, `readOpfsFile`, `deleteOpfsFile`,
+`listOpfsFiles`, `clearOpfs`, plus `opfsReader()` which returns a
+`csvReader`-shaped function that resolves manifest paths against
+OPFS instead of the network.
+
+The demo decides per path: anything starting with `./`, `../`, or
+`/` is fetched, anything else is read from OPFS. Click the
+"Seed sales.csv → OPFS" button once to copy the fixture into
+`vizprocess/sales.csv`, then switch to the "OPFS example" manifest
+and click Render.
+
+OPFS is browser-only (Node has no `navigator.storage`), so there is
+no Node smoke test for this path. The reader contract is the same
+shape as the fetch / fs.readFile readers, so
+`prefetchManifestSources` accepts it without modification.
