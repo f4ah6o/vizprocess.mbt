@@ -73,6 +73,19 @@ All notable changes to this project will be documented in this file.
   against the CLI's working directory, not the manifest directory —
   unlike `csv-file` paths which use the manifest directory. Document
   per-fixture or migrate to absolute paths.
+- M7 (`wasm`): new `packages/wasm/` exposes a JS-callable
+  `manifest_to_svg(json_text) -> String` that runs a process manifest
+  and returns the first SVG artifact (or an HTML-comment error
+  envelope on failure). `csv-inline` only — `csv-file` and `duckdb`
+  hooks are placeholders that report a friendly error until M7.5+
+  wires browser-side IO.
+- M7 build: `moon build --target wasm-gc` now succeeds, producing
+  `_build/wasm-gc/debug/build/wasm/wasm.wasm` (~180 KB). CI runs
+  `moon check --target wasm-gc` and the wasm build on every push.
+- M7 plumbing: `cli/main.mbt` is gated to native, with a
+  `wasm_stub.mbt` providing an empty `main` for non-native targets so
+  `moon check --target wasm-gc` does not trip on the CLI's
+  native-only imports (`@fs`, `@sys`, `@pipe_duckdb`).
 - API change: `pub` structs and enums in `pipe` and `viz` are now `pub(all)`
   so external consumers (notably `vizprocess`) can construct and destructure
   them. Functions remain `pub`.

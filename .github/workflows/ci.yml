@@ -53,3 +53,9 @@ jobs:
 
       - name: Test native
         run: moon test --target native
+
+      - name: Check wasm-gc (libs + wasm bridge)
+        run: moon check --target wasm-gc
+
+      - name: Build wasm-gc bridge
+        run: moon build --target wasm-gc

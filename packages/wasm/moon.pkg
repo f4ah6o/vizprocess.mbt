@@ -1,0 +1,10 @@
+import {
+  "f4ah6o/vizprocess/pipe" @pipe,
+  "f4ah6o/vizprocess/vizprocess" @vizprocess,
+}
+
+options(
+  "is-main": true,
+  link: { "wasm-gc": { "exports": [ "manifest_to_svg", "version" ] } },
+  targets: { "main.mbt": [ "or", "wasm-gc", "native" ] },
+)
