@@ -1,0 +1,9 @@
+{
+  "id": "sales-bar",
+  "mark": "bar",
+  "encoding": {
+    "x": {"field": "month"},
+    "y": {"field": "total"}
+  },
+  "config": {"width": 480, "height": 240}
+}

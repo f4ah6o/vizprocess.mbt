@@ -17,3 +17,12 @@ All notable changes to this project will be documented in this file.
   `fixtures/specs/monthly-sales.pipeline.json`,
   `fixtures/expected/monthly-sales.dataset.json` (loader and CLI integration
   arrive in M5).
+- M2 (`viz`): `ChartSpec`, `Encoding`, `Mark` (Bar / Line), `RenderModel`,
+  and a `compile_chart` that lowers a chart spec plus a row-oriented
+  `VizDataset` to a deterministic, integer-pixel render model. Includes
+  `validate_chart` and a JSON renderer (`render_json`). `viz` does not
+  depend on `pipe`; M4's `vizprocess` adapts `pipe.Dataset` to
+  `VizDataset`. Golden white-box tests cover bar JSON output and line
+  point counts.
+- M2 fixtures: `fixtures/specs/sales-bar.chart.json`,
+  `fixtures/expected/sales-bar.render-model.json`.
