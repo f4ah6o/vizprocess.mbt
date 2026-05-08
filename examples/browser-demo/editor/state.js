@@ -113,6 +113,9 @@ export function createArtifactDraft(manifest) {
 }
 
 export function upsertManifestNode(manifest, kind, draft) {
+  if (!["dataset", "chart", "artifact"].includes(kind)) {
+    throw new Error(`Unsupported manifest node kind: ${kind}`);
+  }
   const key = `${kind}s`;
   const list = manifest[key] ?? [];
   const index = list.findIndex((item) => item.id === draft.id);

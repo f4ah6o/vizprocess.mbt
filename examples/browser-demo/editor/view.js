@@ -113,7 +113,7 @@ export function renderPreview(state) {
     </div>
     <div class="preview-block">
       <strong>SVG</strong>
-      <div class="preview-svg">${svgArtifact ? renderSandboxedSvgFrame(svgArtifact.content) : "<p>No SVG artifact.</p>"}</div>
+      <div class="preview-svg">${svgArtifact ? renderSvgImage(svgArtifact.content) : "<p>No SVG artifact.</p>"}</div>
     </div>
     <div class="preview-block">
       <strong>Resolved manifest</strong>
@@ -122,12 +122,9 @@ export function renderPreview(state) {
   `;
 }
 
-function renderSandboxedSvgFrame(svg) {
-  return `<iframe class="preview-svg-frame" sandbox srcdoc="${escapeAttr(svgDocument(svg))}"></iframe>`;
-}
-
-function svgDocument(svg) {
-  return `<!doctype html><html><body style="margin:0;background:white;">${svg}</body></html>`;
+function renderSvgImage(svg) {
+  const dataUrl = `data:image/svg+xml;charset=utf-8,${encodeURIComponent(svg)}`;
+  return `<img class="preview-svg-image" src="${escapeAttr(dataUrl)}" alt="Rendered SVG preview" />`;
 }
 
 export function renderDiagnosticsText(diagnostics) {

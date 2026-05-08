@@ -38,6 +38,7 @@ const previewEl = document.getElementById("preview");
 const workspaceChipEl = document.getElementById("workspace-chip");
 const fileInputEl = document.getElementById("file-input");
 let commitInFlight = null;
+// One DuckDB connection is shared for the lifetime of this editor tab.
 let duckDbConnectionPromise = null;
 
 const fetchReader = browserReader(import.meta.url);
@@ -45,10 +46,18 @@ const disposeWebMcp = registerModelContextTools(createTools());
 void disposeWebMcp;
 
 document.getElementById("validate-button").addEventListener("click", async () => {
-  await validateCurrentSource();
+  try {
+    await validateCurrentSource();
+  } catch (error) {
+    setStatus(error instanceof Error ? error.message : String(error));
+  }
 });
 document.getElementById("render-button").addEventListener("click", async () => {
-  await validateAndRenderCurrentSource();
+  try {
+    await validateAndRenderCurrentSource();
+  } catch (error) {
+    setStatus(error instanceof Error ? error.message : String(error));
+  }
 });
 document.getElementById("reset-button").addEventListener("click", async () => {
   await loadManifestSource(buildCsvFixtureManifest());
@@ -74,7 +83,8 @@ document.getElementById("seed-opfs").addEventListener("click", async () => {
 });
 document.getElementById("add-dataset").addEventListener("click", async () => {
   if (commitInFlight) return;
-  await syncManifestFromSource();
+  const manifest = await syncManifestFromSource();
+  if (!manifest) return;
   const draft = createDatasetDraft(state.workspaceId, state.manifest);
   const id = upsertManifestNode(state.manifest, "dataset", draft);
   updateSelection(state, "dataset", id);
@@ -82,7 +92,8 @@ document.getElementById("add-dataset").addEventListener("click", async () => {
 });
 document.getElementById("add-chart").addEventListener("click", async () => {
   if (commitInFlight) return;
-  await syncManifestFromSource();
+  const manifest = await syncManifestFromSource();
+  if (!manifest) return;
   const draft = createChartDraft(state.manifest);
   const id = upsertManifestNode(state.manifest, "chart", draft);
   updateSelection(state, "chart", id);
@@ -90,7 +101,8 @@ document.getElementById("add-chart").addEventListener("click", async () => {
 });
 document.getElementById("add-artifact").addEventListener("click", async () => {
   if (commitInFlight) return;
-  await syncManifestFromSource();
+  const manifest = await syncManifestFromSource();
+  if (!manifest) return;
   const draft = createArtifactDraft(state.manifest);
   const id = upsertManifestNode(state.manifest, "artifact", draft);
   updateSelection(state, "artifact", id);
@@ -141,7 +153,11 @@ async function loadManifestSource(source, options = {}) {
 }
 
 async function validateCurrentSource() {
-  await syncManifestFromSource();
+  const manifest = await syncManifestFromSource();
+  if (!manifest) {
+    setStatus("Manifest JSON is invalid.");
+    return { ok: false, diagnostics: state.diagnostics };
+  }
   state.resolvedManifest = await resolveCurrentManifest();
   const validation = await postEditorJson("validate", { manifest: state.resolvedManifest });
   state.diagnostics = validation.diagnostics ?? [];
@@ -154,7 +170,11 @@ async function validateCurrentSource() {
 }
 
 async function validateAndRenderCurrentSource() {
-  await syncManifestFromSource();
+  const manifest = await syncManifestFromSource();
+  if (!manifest) {
+    setStatus("Manifest JSON is invalid.");
+    return { ok: false, diagnostics: state.diagnostics };
+  }
   setStatus("Resolving manifest sources…");
   state.resolvedManifest = await resolveCurrentManifest();
   const validation = await postEditorJson("validate", { manifest: state.resolvedManifest });
@@ -186,7 +206,7 @@ async function syncManifestFromSource() {
       },
     ];
     render();
-    throw error;
+    return null;
   }
 }
 
@@ -218,8 +238,12 @@ function render() {
 
   inspectorEl.innerHTML = renderInspector(state);
   bindInspector(inspectorEl, async (field, value) => {
-    applyInspectorPatch(field, value);
-    await commitVisualEdit();
+    try {
+      applyInspectorPatch(field, value);
+      await commitVisualEdit();
+    } catch (error) {
+      setStatus(error instanceof Error ? error.message : String(error));
+    }
   });
   previewEl.innerHTML = renderPreview(state);
 }
@@ -470,8 +494,8 @@ function createTools() {
         runWithUserInteraction(client, async () => {
           state.source = source;
           sourceEl.value = source;
-          await validateAndRenderCurrentSource();
-          return { ok: true, diagnostics: state.diagnostics };
+          const result = await validateAndRenderCurrentSource();
+          return { ok: Boolean(result?.ok), diagnostics: state.diagnostics };
         }),
     },
     {
@@ -511,12 +535,15 @@ function createTools() {
       },
       execute: async ({ dataset }, client) =>
         runWithUserInteraction(client, async () => {
-          await syncManifestFromSource();
+          const manifest = await syncManifestFromSource();
+          if (!manifest) {
+            return { ok: false, diagnostics: state.diagnostics };
+          }
           const draft = dataset ?? createDatasetDraft(state.workspaceId, state.manifest);
           const id = upsertManifestNode(state.manifest, "dataset", draft);
           updateSelection(state, "dataset", id);
           await commitVisualEdit();
-          return { ok: true, datasetId: id };
+          return { ok: true, datasetId: id, diagnostics: state.diagnostics };
         }),
     },
     {
@@ -531,12 +558,15 @@ function createTools() {
       },
       execute: async ({ chart }, client) =>
         runWithUserInteraction(client, async () => {
-          await syncManifestFromSource();
+          const manifest = await syncManifestFromSource();
+          if (!manifest) {
+            return { ok: false, diagnostics: state.diagnostics };
+          }
           const draft = chart ?? createChartDraft(state.manifest);
           const id = upsertManifestNode(state.manifest, "chart", draft);
           updateSelection(state, "chart", id);
           await commitVisualEdit();
-          return { ok: true, chartId: id };
+          return { ok: true, chartId: id, diagnostics: state.diagnostics };
         }),
     },
     {
@@ -551,12 +581,15 @@ function createTools() {
       },
       execute: async ({ artifact }, client) =>
         runWithUserInteraction(client, async () => {
-          await syncManifestFromSource();
+          const manifest = await syncManifestFromSource();
+          if (!manifest) {
+            return { ok: false, diagnostics: state.diagnostics };
+          }
           const draft = artifact ?? createArtifactDraft(state.manifest);
           const id = upsertManifestNode(state.manifest, "artifact", draft);
           updateSelection(state, "artifact", id);
           await commitVisualEdit();
-          return { ok: true, artifactId: id };
+          return { ok: true, artifactId: id, diagnostics: state.diagnostics };
         }),
     },
     {
