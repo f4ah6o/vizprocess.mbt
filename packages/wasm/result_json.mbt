@@ -148,7 +148,26 @@ fn write_process_json_escaped(buf : StringBuilder, s : String) -> Unit {
       '\n' => buf.write_string("\\n")
       '\r' => buf.write_string("\\r")
       '\t' => buf.write_string("\\t")
-      _ => buf.write_char(ch)
+      '\u{08}' => buf.write_string("\\b")
+      '\u{0c}' => buf.write_string("\\f")
+      _ => {
+        let code = ch.to_int()
+        if code >= 0 && code < 0x20 {
+          buf.write_string("\\u")
+          buf.write_string(hex_digit((code / 0x1000) % 0x10))
+          buf.write_string(hex_digit((code / 0x100) % 0x10))
+          buf.write_string(hex_digit((code / 0x10) % 0x10))
+          buf.write_string(hex_digit(code % 0x10))
+        } else {
+          buf.write_char(ch)
+        }
+      }
     }
   }
+}
+
+///|
+fn hex_digit(value : Int) -> String {
+  let digits = "0123456789abcdef"
+  digits[value].to_string()
 }

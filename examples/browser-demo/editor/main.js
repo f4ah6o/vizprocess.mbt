@@ -37,55 +37,83 @@ const inspectorEl = document.getElementById("inspector");
 const previewEl = document.getElementById("preview");
 const workspaceChipEl = document.getElementById("workspace-chip");
 const fileInputEl = document.getElementById("file-input");
+const validateButton = document.getElementById("validate-button");
+const renderButton = document.getElementById("render-button");
+const resetButton = document.getElementById("reset-button");
+const exportButton = document.getElementById("export-button");
+const sampleCsvButton = document.getElementById("sample-csv");
+const sampleDuckDbButton = document.getElementById("sample-duckdb");
+const sampleOpfsButton = document.getElementById("sample-opfs");
+const seedOpfsButton = document.getElementById("seed-opfs");
+const addDatasetButton = document.getElementById("add-dataset");
+const addChartButton = document.getElementById("add-chart");
+const addArtifactButton = document.getElementById("add-artifact");
+let commitInFlight = null;
+// One DuckDB connection is shared for the lifetime of this editor tab.
+let duckDbConnectionPromise = null;
+let activeRequestController = null;
+let activeRequestToken = 0;
+let renderDebounceTimer = null;
+let busyDepth = 0;
 
 const fetchReader = browserReader(import.meta.url);
 const disposeWebMcp = registerModelContextTools(createTools());
 void disposeWebMcp;
 
-document.getElementById("validate-button").addEventListener("click", async () => {
+validateButton.addEventListener("click", async () => {
   await validateCurrentSource();
 });
-document.getElementById("render-button").addEventListener("click", async () => {
+renderButton.addEventListener("click", async () => {
   await validateAndRenderCurrentSource();
 });
-document.getElementById("reset-button").addEventListener("click", async () => {
+resetButton.addEventListener("click", async () => {
   await loadManifestSource(buildCsvFixtureManifest());
 });
-document.getElementById("export-button").addEventListener("click", async () => {
-  await navigator.clipboard.writeText(state.source);
-  setStatus("Copied manifest JSON to clipboard.");
+exportButton.addEventListener("click", async () => {
+  try {
+    await navigator.clipboard.writeText(state.source);
+    setStatus("Copied manifest JSON to clipboard.");
+  } catch (error) {
+    setStatus(error instanceof Error ? error.message : "Clipboard write failed.");
+  }
 });
-document.getElementById("sample-csv").addEventListener("click", async () => {
+sampleCsvButton.addEventListener("click", async () => {
   await loadManifestSource(buildCsvFixtureManifest());
 });
-document.getElementById("sample-duckdb").addEventListener("click", async () => {
+sampleDuckDbButton.addEventListener("click", async () => {
   await loadManifestSource(buildDuckdbManifest());
 });
-document.getElementById("sample-opfs").addEventListener("click", async () => {
+sampleOpfsButton.addEventListener("click", async () => {
   await seedWorkspaceFixture();
   await loadManifestSource(buildOpfsManifest());
 });
-document.getElementById("seed-opfs").addEventListener("click", async () => {
+seedOpfsButton.addEventListener("click", async () => {
   await seedWorkspaceFixture();
   await refreshLocalFiles();
   render();
 });
-document.getElementById("add-dataset").addEventListener("click", async () => {
-  await syncManifestFromSource();
+addDatasetButton.addEventListener("click", async () => {
+  if (commitInFlight) return;
+  const manifest = await syncManifestFromSource();
+  if (!manifest) return;
   const draft = createDatasetDraft(state.workspaceId, state.manifest);
   const id = upsertManifestNode(state.manifest, "dataset", draft);
   updateSelection(state, "dataset", id);
   await commitVisualEdit();
 });
-document.getElementById("add-chart").addEventListener("click", async () => {
-  await syncManifestFromSource();
+addChartButton.addEventListener("click", async () => {
+  if (commitInFlight) return;
+  const manifest = await syncManifestFromSource();
+  if (!manifest) return;
   const draft = createChartDraft(state.manifest);
   const id = upsertManifestNode(state.manifest, "chart", draft);
   updateSelection(state, "chart", id);
   await commitVisualEdit();
 });
-document.getElementById("add-artifact").addEventListener("click", async () => {
-  await syncManifestFromSource();
+addArtifactButton.addEventListener("click", async () => {
+  if (commitInFlight) return;
+  const manifest = await syncManifestFromSource();
+  if (!manifest) return;
   const draft = createArtifactDraft(state.manifest);
   const id = upsertManifestNode(state.manifest, "artifact", draft);
   updateSelection(state, "artifact", id);
@@ -136,31 +164,37 @@ async function loadManifestSource(source, options = {}) {
 }
 
 async function validateCurrentSource() {
-  await syncManifestFromSource();
-  state.resolvedManifest = await resolveCurrentManifest();
-  const validation = await postEditorJson("validate", { manifest: state.resolvedManifest });
-  state.diagnostics = validation.diagnostics ?? [];
-  state.renderResult = null;
-  await saveWorkspaceManifest(state.workspaceId, state.source);
-  await refreshLocalFiles();
-  render();
-  setStatus(validation.ok ? "Validation succeeded." : "Validation returned diagnostics.");
-  return validation;
+  return runLatestRequest("Resolving manifest sources…", async ({ signal, isCurrent }) => {
+    const manifest = await syncManifestFromSource();
+    if (!manifest || !isCurrent()) return { ok: false, diagnostics: state.diagnostics };
+    state.resolvedManifest = await resolveCurrentManifest();
+    const validation = await postEditorJson("validate", { manifest: state.resolvedManifest }, { signal });
+    if (!isCurrent()) return null;
+    state.diagnostics = validation.diagnostics ?? [];
+    state.renderResult = null;
+    await saveWorkspaceManifest(state.workspaceId, state.source);
+    await refreshLocalFiles();
+    render();
+    setStatus(validation.ok ? "Validation succeeded." : "Validation returned diagnostics.");
+    return validation;
+  });
 }
 
 async function validateAndRenderCurrentSource() {
-  await syncManifestFromSource();
-  setStatus("Resolving manifest sources…");
-  state.resolvedManifest = await resolveCurrentManifest();
-  const validation = await postEditorJson("validate", { manifest: state.resolvedManifest });
-  const renderResult = await postEditorJson("render", { manifest: state.resolvedManifest });
-  state.diagnostics = mergeDiagnostics(validation.diagnostics, renderResult.diagnostics);
-  state.renderResult = renderResult;
-  await saveWorkspaceManifest(state.workspaceId, state.source);
-  await refreshLocalFiles();
-  render();
-  setStatus(renderResult.ok ? "Render succeeded." : "Render completed with diagnostics.");
-  return renderResult;
+  return runLatestRequest("Resolving manifest sources…", async ({ signal, isCurrent }) => {
+    const manifest = await syncManifestFromSource();
+    if (!manifest || !isCurrent()) return { ok: false, diagnostics: state.diagnostics };
+    state.resolvedManifest = await resolveCurrentManifest();
+    const renderResult = await postEditorJson("render", { manifest: state.resolvedManifest }, { signal });
+    if (!isCurrent()) return null;
+    state.diagnostics = renderResult.diagnostics ?? [];
+    state.renderResult = renderResult;
+    await saveWorkspaceManifest(state.workspaceId, state.source);
+    await refreshLocalFiles();
+    render();
+    setStatus(renderResult.ok ? "Render succeeded." : "Render completed with diagnostics.");
+    return renderResult;
+  });
 }
 
 async function syncManifestFromSource() {
@@ -181,25 +215,26 @@ async function syncManifestFromSource() {
       },
     ];
     render();
-    throw error;
+    setStatus("Manifest JSON is invalid.");
+    return null;
   }
 }
 
 async function resolveCurrentManifest() {
-  const conn = await getDuckDbConnection();
   const opfsPrefix = workspaceFilesPrefix(state.workspaceId);
   const manifest = cloneManifest(state.manifest);
   return prefetchManifestSources(manifest, {
     csvReader: async (path) => {
-      if (path.startsWith("./") || path.startsWith("../") || path.startsWith("/") || path.startsWith("http://") || path.startsWith("https://")) {
-        return fetchReader(path);
-      }
-      if (!path.startsWith(opfsPrefix) && path.includes("/files/")) {
+      if (resolveCsvSourceMode(path, opfsPrefix) === "fetch") {
         return fetchReader(path);
       }
       return readOpfsFile(path);
     },
-    duckdbRunner: async (_db, sql, schema) => duckdbQueryToCsv(conn.conn, sql, schema),
+    duckdbRunner: async (_db, sql, schema) => {
+      duckDbConnectionPromise ??= getDuckDbConnection();
+      const conn = await duckDbConnectionPromise;
+      return duckdbQueryToCsv(conn.conn, sql, schema);
+    },
   });
 }
 
@@ -212,9 +247,18 @@ function render() {
   });
 
   inspectorEl.innerHTML = renderInspector(state);
-  bindInspector(inspectorEl, async (field, value) => {
-    applyInspectorPatch(field, value);
-    await commitVisualEdit();
+  bindInspector(inspectorEl, async (field, value, eventType) => {
+    try {
+      applyInspectorPatch(field, value);
+      if (eventType === "change") {
+        await commitVisualEdit();
+      } else {
+        scheduleVisualCommit();
+      }
+    } catch (error) {
+      setStatus(error instanceof Error ? error.message : String(error));
+      render();
+    }
   });
   previewEl.innerHTML = renderPreview(state);
 }
@@ -225,11 +269,13 @@ function applyInspectorPatch(field, value) {
 
   if (state.selection.kind === "dataset") {
     if (field === "pipeline") {
-      node.pipeline = parseJsonField(value, node.pipeline);
+      node.pipeline = parseJsonField(field, value);
+      clearInvalidJsonField(field);
       return;
     }
     if (field === "source.schema") {
-      node.source.schema = parseJsonField(value, node.source.schema);
+      node.source.schema = parseJsonField(field, value);
+      clearInvalidJsonField(field);
       return;
     }
   }
@@ -243,10 +289,19 @@ function applyInspectorPatch(field, value) {
 }
 
 async function commitVisualEdit() {
-  if (!state.manifest) return;
-  state.source = serializeManifest(state.manifest);
-  sourceEl.value = state.source;
-  await validateAndRenderCurrentSource();
+  if (commitInFlight) return commitInFlight;
+  if (!state.manifest) return null;
+  clearPendingRenderCommit();
+  commitInFlight = (async () => {
+    state.source = serializeManifest(state.manifest);
+    sourceEl.value = state.source;
+    await validateAndRenderCurrentSource();
+  })();
+  try {
+    return await commitInFlight;
+  } finally {
+    commitInFlight = null;
+  }
 }
 
 async function refreshLocalFiles() {
@@ -456,8 +511,8 @@ function createTools() {
       execute: async ({ source }) => {
         state.source = source;
         sourceEl.value = source;
-        await validateAndRenderCurrentSource();
-        return { ok: true, diagnostics: state.diagnostics };
+        const result = await validateAndRenderCurrentSource();
+        return { ok: Boolean(result?.ok), diagnostics: state.diagnostics };
       },
     },
     {
@@ -481,8 +536,14 @@ function createTools() {
       inputSchema: { type: "object", properties: {} },
       execute: async (_args, client) =>
         runWithUserInteraction(client, async () => {
-          await navigator.clipboard.writeText(state.source);
-          return { source: state.source };
+          try {
+            await navigator.clipboard.writeText(state.source);
+            return { ok: true, source: state.source };
+          } catch (error) {
+            const message = error instanceof Error ? error.message : "Clipboard write failed.";
+            setStatus(message);
+            return { ok: false, source: state.source, error: message };
+          }
         }),
     },
     {
@@ -495,14 +556,18 @@ function createTools() {
           dataset: { type: "object" },
         },
       },
-      execute: async ({ dataset }) => {
-        await syncManifestFromSource();
+      execute: async ({ dataset }, client) =>
+        runWithUserInteraction(client, async () => {
+        const manifest = await syncManifestFromSource();
+        if (!manifest) {
+          return { ok: false, diagnostics: state.diagnostics };
+        }
         const draft = dataset ?? createDatasetDraft(state.workspaceId, state.manifest);
         const id = upsertManifestNode(state.manifest, "dataset", draft);
         updateSelection(state, "dataset", id);
         await commitVisualEdit();
-        return { ok: true, datasetId: id };
-      },
+        return { ok: true, datasetId: id, diagnostics: state.diagnostics };
+      }),
     },
     {
       name: "vizprocess-upsert-chart",
@@ -514,14 +579,18 @@ function createTools() {
           chart: { type: "object" },
         },
       },
-      execute: async ({ chart }) => {
-        await syncManifestFromSource();
+      execute: async ({ chart }, client) =>
+        runWithUserInteraction(client, async () => {
+        const manifest = await syncManifestFromSource();
+        if (!manifest) {
+          return { ok: false, diagnostics: state.diagnostics };
+        }
         const draft = chart ?? createChartDraft(state.manifest);
         const id = upsertManifestNode(state.manifest, "chart", draft);
         updateSelection(state, "chart", id);
         await commitVisualEdit();
-        return { ok: true, chartId: id };
-      },
+        return { ok: true, chartId: id, diagnostics: state.diagnostics };
+      }),
     },
     {
       name: "vizprocess-upsert-artifact",
@@ -533,14 +602,18 @@ function createTools() {
           artifact: { type: "object" },
         },
       },
-      execute: async ({ artifact }) => {
-        await syncManifestFromSource();
+      execute: async ({ artifact }, client) =>
+        runWithUserInteraction(client, async () => {
+        const manifest = await syncManifestFromSource();
+        if (!manifest) {
+          return { ok: false, diagnostics: state.diagnostics };
+        }
         const draft = artifact ?? createArtifactDraft(state.manifest);
         const id = upsertManifestNode(state.manifest, "artifact", draft);
         updateSelection(state, "artifact", id);
         await commitVisualEdit();
-        return { ok: true, artifactId: id };
-      },
+        return { ok: true, artifactId: id, diagnostics: state.diagnostics };
+      }),
     },
     {
       name: "vizprocess-list-local-files",
@@ -560,24 +633,13 @@ function createTools() {
   ];
 }
 
-function mergeDiagnostics(validationDiagnostics, renderDiagnostics) {
-  const merged = [];
-  for (const list of [validationDiagnostics ?? [], renderDiagnostics ?? []]) {
-    for (const item of list) {
-      const key = JSON.stringify([item.code, item.target, item.message]);
-      if (!merged.some((candidate) => candidate._key === key)) {
-        merged.push({ ...item, _key: key });
-      }
-    }
-  }
-  return merged.map(({ _key, ...rest }) => rest);
-}
-
-function parseJsonField(input, fallback) {
+function parseJsonField(field, input) {
   try {
     return JSON.parse(input);
-  } catch {
-    return fallback;
+  } catch (error) {
+    const message = error instanceof Error ? error.message : String(error);
+    setInvalidJsonField(field, message);
+    throw new Error(`Invalid JSON for ${field}: ${message}`);
   }
 }
 
@@ -594,4 +656,99 @@ function setNested(target, field, value) {
 
 function setStatus(message) {
   statusEl.textContent = message;
+}
+
+function scheduleVisualCommit() {
+  clearPendingRenderCommit();
+  renderDebounceTimer = setTimeout(() => {
+    renderDebounceTimer = null;
+    void commitVisualEdit();
+  }, 150);
+}
+
+function clearPendingRenderCommit() {
+  if (renderDebounceTimer != null) {
+    clearTimeout(renderDebounceTimer);
+    renderDebounceTimer = null;
+  }
+}
+
+async function runLatestRequest(statusMessage, task) {
+  const token = ++activeRequestToken;
+  activeRequestController?.abort();
+  const controller = new AbortController();
+  activeRequestController = controller;
+  setBusy(true);
+  setStatus(statusMessage);
+  try {
+    return await task({
+      signal: controller.signal,
+      isCurrent: () => activeRequestToken === token && activeRequestController === controller,
+    });
+  } catch (error) {
+    if (error?.name === "AbortError") {
+      return null;
+    }
+    throw error;
+  } finally {
+    if (activeRequestController === controller) {
+      activeRequestController = null;
+    }
+    setBusy(false);
+  }
+}
+
+function setBusy(nextBusy) {
+  busyDepth = Math.max(0, busyDepth + (nextBusy ? 1 : -1));
+  const disabled = busyDepth > 0;
+  for (const element of [
+    validateButton,
+    renderButton,
+    resetButton,
+    exportButton,
+    sampleCsvButton,
+    sampleDuckDbButton,
+    sampleOpfsButton,
+    seedOpfsButton,
+    addDatasetButton,
+    addChartButton,
+    addArtifactButton,
+  ]) {
+    element.disabled = disabled;
+  }
+}
+
+function resolveCsvSourceMode(path, opfsPrefix) {
+  if (path.startsWith(opfsPrefix)) {
+    return "opfs";
+  }
+  if (
+    path.startsWith("./") ||
+    path.startsWith("../") ||
+    path.startsWith("/") ||
+    path.startsWith("http://") ||
+    path.startsWith("https://")
+  ) {
+    return "fetch";
+  }
+  return "opfs";
+}
+
+function setInvalidJsonField(field, message) {
+  const diagnostic = {
+    code: "INVALID_JSON_FIELD",
+    severity: "error",
+    target: field,
+    message,
+  };
+  state.diagnostics = [
+    ...state.diagnostics.filter((item) => !(item.code === "INVALID_JSON_FIELD" && item.target === field)),
+    diagnostic,
+  ];
+}
+
+function clearInvalidJsonField(field) {
+  state.diagnostics = state.diagnostics.filter(
+    (item) => !(item.code === "INVALID_JSON_FIELD" && item.target === field),
+  );
 }

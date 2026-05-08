@@ -48,5 +48,10 @@ export async function listWorkspaceFiles(workspaceId) {
 }
 
 function sanitizeFileName(input) {
-  return input.replaceAll(/[^A-Za-z0-9._-]/g, "-");
+  const safeName = input
+    .replaceAll(/\.\.+/g, "-")
+    .replaceAll(/[^A-Za-z0-9._-]/g, "-")
+    .replaceAll(/^-+/, "")
+    .replaceAll(/-+$/, "");
+  return safeName || "file";
 }

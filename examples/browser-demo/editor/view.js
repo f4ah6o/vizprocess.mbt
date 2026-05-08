@@ -87,7 +87,7 @@ export function renderInspector(state) {
 
 export function bindInspector(root, onPatch) {
   root.querySelectorAll("[data-field]").forEach((input) => {
-    const handler = () => onPatch(input.dataset.field, input.value);
+    const handler = (event) => onPatch(input.dataset.field, input.value, event.type);
     input.addEventListener("change", handler);
     if (input.tagName === "TEXTAREA" || input.tagName === "INPUT") {
       input.addEventListener("input", handler);
@@ -113,13 +113,18 @@ export function renderPreview(state) {
     </div>
     <div class="preview-block">
       <strong>SVG</strong>
-      <div class="preview-svg">${svgArtifact ? svgArtifact.content : "<p>No SVG artifact.</p>"}</div>
+      <div class="preview-svg">${svgArtifact ? renderSvgImage(svgArtifact.content) : "<p>No SVG artifact.</p>"}</div>
     </div>
     <div class="preview-block">
       <strong>Resolved manifest</strong>
       <pre>${escapeHtml(prettyJson(state.resolvedManifest ?? {}))}</pre>
     </div>
   `;
+}
+
+function renderSvgImage(svg) {
+  const dataUrl = `data:image/svg+xml;charset=utf-8,${encodeURIComponent(svg)}`;
+  return `<img class="preview-svg-image" src="${escapeAttr(dataUrl)}" alt="Rendered SVG preview" />`;
 }
 
 export function renderDiagnosticsText(diagnostics) {
