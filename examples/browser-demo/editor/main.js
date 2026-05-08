@@ -123,12 +123,16 @@ sourceEl.addEventListener("input", () => {
   state.source = sourceEl.value;
 });
 fileInputEl.addEventListener("change", async () => {
-  const file = fileInputEl.files?.[0];
-  if (!file) return;
-  const text = await file.text();
-  const path = await writeWorkspaceFile(state.workspaceId, file.name, text);
+  const files = Array.from(fileInputEl.files ?? []);
+  if (files.length === 0) return;
+  const imported = [];
+  for (const file of files) {
+    const text = await file.text();
+    const path = await writeWorkspaceFile(state.workspaceId, file.name, text);
+    imported.push(`${file.name} -> ${path}`);
+  }
   await refreshLocalFiles();
-  setStatus(`Imported ${file.name} to ${path}.`);
+  setStatus(`Imported ${imported.join(", ")}.`);
   fileInputEl.value = "";
   render();
 });
@@ -242,6 +246,7 @@ function render() {
   workspaceChipEl.textContent = `Workspace: ${state.workspaceId}`;
   graphEl.innerHTML = renderGraph(state);
   bindGraph(graphEl, (kind, id) => {
+    clearPendingRenderCommit();
     updateSelection(state, kind, id);
     render();
   });
@@ -266,16 +271,15 @@ function render() {
 function applyInspectorPatch(field, value) {
   const node = selectedNode(state);
   if (!node) return;
+  clearInvalidJsonField(field);
 
   if (state.selection.kind === "dataset") {
     if (field === "pipeline") {
       node.pipeline = parseJsonField(field, value);
-      clearInvalidJsonField(field);
       return;
     }
     if (field === "source.schema") {
       node.source.schema = parseJsonField(field, value);
-      clearInvalidJsonField(field);
       return;
     }
   }
@@ -745,10 +749,12 @@ function setInvalidJsonField(field, message) {
     ...state.diagnostics.filter((item) => !(item.code === "INVALID_JSON_FIELD" && item.target === field)),
     diagnostic,
   ];
+  render();
 }
 
 function clearInvalidJsonField(field) {
   state.diagnostics = state.diagnostics.filter(
     (item) => !(item.code === "INVALID_JSON_FIELD" && item.target === field),
   );
+  render();
 }

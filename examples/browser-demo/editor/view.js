@@ -1,5 +1,7 @@
 import { selectedNode } from "./state.js";
 
+let currentPreviewUrl = null;
+
 export function renderGraph(state) {
   const manifest = state.manifest;
   if (!manifest) {
@@ -123,8 +125,11 @@ export function renderPreview(state) {
 }
 
 function renderSvgImage(svg) {
-  const dataUrl = `data:image/svg+xml;charset=utf-8,${encodeURIComponent(svg)}`;
-  return `<img class="preview-svg-image" src="${escapeAttr(dataUrl)}" alt="Rendered SVG preview" />`;
+  if (currentPreviewUrl) {
+    URL.revokeObjectURL(currentPreviewUrl);
+  }
+  currentPreviewUrl = URL.createObjectURL(new Blob([svg], { type: "image/svg+xml" }));
+  return `<img class="preview-svg-image" src="${escapeAttr(currentPreviewUrl)}" alt="Rendered SVG preview" />`;
 }
 
 export function renderDiagnosticsText(diagnostics) {
