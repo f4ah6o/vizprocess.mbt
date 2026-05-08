@@ -23,6 +23,10 @@ pnpm run build:cloudflare-demo-assets
 wrangler dev --env=""
 ```
 
+`worker.mjs` dynamically imports `_build/js/release/build/wasm/wasm.js`, so
+the JS target build must exist before `wrangler dev` or deploy. The
+`build:cloudflare-demo-assets` script now checks that artifact explicitly.
+
 Then open:
 
 - `http://127.0.0.1:8787/` for the original demo

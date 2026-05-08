@@ -77,6 +77,9 @@ pub fn manifest_to_render_result_json(json_text : String) -> String {
 }
 
 ///|
+/// Legacy single-SVG helper kept for direct wasm embedding. The Worker/editor
+/// path uses `manifest_to_validation_json` and `manifest_to_render_result_json`;
+/// `error_envelope` remains only for this compatibility surface.
 fn error_envelope(message : String) -> String {
   let buf = StringBuilder::new()
   buf.write_string("<!-- vizprocess error: ")
