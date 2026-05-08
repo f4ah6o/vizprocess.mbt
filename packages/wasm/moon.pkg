@@ -7,11 +7,23 @@ options(
   "is-main": true,
   link: {
     "js": {
-      "exports": [ "manifest_to_svg", "version" ],
+      "exports": [
+        "manifest_to_svg",
+        "manifest_to_validation_json",
+        "manifest_to_render_result_json",
+        "version",
+      ],
       "format": "esm",
       "use-js-builtin-string": true,
     },
-    "wasm-gc": { "exports": [ "manifest_to_svg", "version" ] },
+    "wasm-gc": {
+      "exports": [
+        "manifest_to_svg",
+        "manifest_to_validation_json",
+        "manifest_to_render_result_json",
+        "version",
+      ],
+    },
   },
   targets: { "main.mbt": [ "or", "wasm-gc", [ "or", "native", "js" ] ] },
 )

@@ -1,23 +1,42 @@
 # browser-demo
 
-Minimal page that imports `packages/wasm` (built for the `js` target) as
-an ES module and renders the SVG returned by `manifest_to_svg`.
+Cloudflare-targeted browser surfaces for `vizprocess.mbt`.
+
+- `/` is the original manifest textarea demo.
+- `/editor/` is the graph/inspector editor backed by OPFS workspaces,
+  browser-side source resolution, and WebMCP registration.
+
+The editor talks to experimental internal Worker routes:
+
+- `POST /api/editor/validate`
+- `POST /api/editor/render`
+
+Those APIs are browser-editor contracts, not a public persistence API.
 
 ## Run
 
 ```bash
 # from repo root
 moon build --target js --release
-python3 -m http.server 8080
-# open http://localhost:8080/examples/browser-demo/
+pnpm install
+pnpm run build:cloudflare-demo-assets
+wrangler dev --env=""
 ```
 
-The page edits a JSON manifest in-place and re-renders on click.
+`worker.mjs` dynamically imports `_build/js/release/build/wasm/wasm.js`, so
+the JS target build must exist before `wrangler dev` or deploy. The
+`build:cloudflare-demo-assets` script now checks that artifact explicitly.
+
+Then open:
+
+- `http://127.0.0.1:8787/` for the original demo
+- `http://127.0.0.1:8787/editor/` for the editor
 
 ## Smoke tests (no browser)
 
 ```bash
 moon build --target js --release
+npm run test:js
 
 # csv-file path (fs.readFile reader): prints SVG matching
 # fixtures/expected/sales-bar.svg.
@@ -65,13 +84,38 @@ System: `writeOpfsFile`, `readOpfsFile`, `deleteOpfsFile`,
 `csvReader`-shaped function that resolves manifest paths against
 OPFS instead of the network.
 
-The demo decides per path: anything starting with `./`, `../`, or
-`/` is fetched, anything else is read from OPFS. Click the
-"Seed sales.csv → OPFS" button once to copy the fixture into
-`vizprocess/sales.csv`, then switch to the "OPFS example" manifest
-and click Render.
+The editor stores the current workspace manifest at:
+
+- `vizprocess-editor/workspaces/<workspace-id>/manifest.json`
+
+Imported CSV attachments live under:
+
+- `vizprocess-editor/workspaces/<workspace-id>/files/*`
+
+Path resolution is:
+
+- `./`, `../`, `/`, `http://`, `https://` -> `fetch`
+- everything else -> OPFS
+
+Click "Seed OPFS" once to copy the sales fixture into the current
+workspace, then switch to the OPFS sample manifest.
 
 OPFS is browser-only (Node has no `navigator.storage`), so there is
 no Node smoke test for this path. The reader contract is the same
 shape as the fetch / fs.readFile readers, so
 `prefetchManifestSources` accepts it without modification.
+
+## WebMCP
+
+The editor registers browser-side `navigator.modelContext` tools with the
+`vizprocess-*` prefix, including:
+
+- `vizprocess-get-editor-state`
+- `vizprocess-set-source`
+- `vizprocess-validate-source`
+- `vizprocess-render-preview`
+- `vizprocess-export-source`
+- `vizprocess-upsert-dataset`
+- `vizprocess-upsert-chart`
+- `vizprocess-upsert-artifact`
+- `vizprocess-list-local-files`

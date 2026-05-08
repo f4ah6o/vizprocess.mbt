@@ -21,6 +21,21 @@ moon test
 moon run packages/cli -- process run examples/simple-csv-bar/process.json
 ```
 
+## Browser demo / Worker
+
+`examples/browser-demo/` now exposes two browser surfaces:
+
+- `/` keeps the original manifest textarea demo
+- `/editor/` adds a graph/inspector editor with OPFS-backed local workspaces and WebMCP registration
+
+The Cloudflare Worker also exposes experimental internal browser-editor APIs:
+
+- `POST /api/editor/validate`
+- `POST /api/editor/render`
+
+These APIs only accept browser-resolved manifests. The Worker does not read
+OPFS or browser-local files directly.
+
 ## Architecture
 
 See [docs/architecture.md](docs/architecture.md).

@@ -1,5 +1,6 @@
 import {
   copyFileSync,
+  cpSync,
   existsSync,
   mkdirSync,
   readFileSync,
@@ -12,6 +13,7 @@ import { fileURLToPath } from "node:url";
 const rootDir = resolve(dirname(fileURLToPath(import.meta.url)), "..");
 const outDir = resolve(rootDir, "_build/cloudflare/browser-demo");
 const browserDemoDir = resolve(rootDir, "examples/browser-demo");
+const editorDir = resolve(browserDemoDir, "editor");
 const fixturesDir = resolve(outDir, "fixtures/datasets");
 const filesToCopy = [
   [
@@ -38,7 +40,7 @@ const filesToCopy = [
 
 const indexSource = resolve(browserDemoDir, "index.html");
 
-if (!existsSync(indexSource)) {
+if (!existsSync(indexSource) || !existsSync(editorDir)) {
   throw new Error(`Missing required build input: ${indexSource}`);
 }
 
@@ -55,6 +57,7 @@ for (const [src, dest] of filesToCopy) {
   mkdirSync(dirname(dest), { recursive: true });
   copyFileSync(src, dest);
 }
+cpSync(editorDir, resolve(outDir, "editor"), { recursive: true });
 
 let indexHtml = readFileSync(indexSource, "utf8");
 indexHtml = replaceAllExact(
