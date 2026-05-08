@@ -19,10 +19,14 @@ build:
 test:
     moon test
 
+test-js:
+    moon build packages/wasm --target js --release
+    node --test examples/browser-demo/worker.test.mjs examples/browser-demo/webmcp.test.mjs
+
 clean:
     moon clean
 
-ci: fmt check test
+ci: fmt check test test-js
 
 _require-cloudflare-env:
     test -n "${CLOUDFLARE_API_TOKEN:-}" || { echo "CLOUDFLARE_API_TOKEN is required" >&2; exit 1; }

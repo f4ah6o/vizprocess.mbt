@@ -56,3 +56,62 @@ test "manifest_to_svg rejects csv-file with helpful message" {
   let svg = manifest_to_svg(manifest)
   inspect(svg.contains("csv-file is not supported"), content="true")
 }
+
+///|
+test "manifest_to_validation_json returns structured success envelope" {
+  let manifest =
+    #|{
+    #|  "id": "x",
+    #|  "datasets": [{
+    #|    "id": "d",
+    #|    "source": {"kind": "csv-inline",
+    #|               "data": "month,region,amount\n2026-01,JP,100\n",
+    #|               "schema": {"fields": [
+    #|                 {"name": "month", "dtype": "string"},
+    #|                 {"name": "region", "dtype": "string"},
+    #|                 {"name": "amount", "dtype": "int"}]}},
+    #|    "pipeline": {"steps": []}
+    #|  }],
+    #|  "charts": [{
+    #|    "id": "c", "dataset_id": "d",
+    #|    "spec": {"id": "sales-bar", "mark": "bar",
+    #|             "encoding": {"x": {"field": "month"},
+    #|                          "y": {"field": "amount"}},
+    #|             "config": {"width": 480, "height": 240}}
+    #|  }],
+    #|  "artifacts": [{"id": "svg", "kind": "svg", "chart_id": "c"}]
+    #|}
+  let result = manifest_to_validation_json(manifest)
+  inspect(result.contains("\"ok\":true"), content="true")
+  inspect(result.contains("\"diagnostics\":[]"), content="true")
+  inspect(result.contains("\"processId\":\"x\""), content="true")
+}
+
+///|
+test "manifest_to_render_result_json returns structured artifacts" {
+  let manifest =
+    #|{
+    #|  "id": "x",
+    #|  "datasets": [{
+    #|    "id": "d",
+    #|    "source": {"kind": "csv-inline",
+    #|               "data": "month,region,amount\n2026-01,JP,100\n",
+    #|               "schema": {"fields": [
+    #|                 {"name": "month", "dtype": "string"},
+    #|                 {"name": "region", "dtype": "string"},
+    #|                 {"name": "amount", "dtype": "int"}]}},
+    #|    "pipeline": {"steps": []}
+    #|  }],
+    #|  "charts": [{
+    #|    "id": "c", "dataset_id": "d",
+    #|    "spec": {"id": "sales-bar", "mark": "bar",
+    #|             "encoding": {"x": {"field": "month"},
+    #|                          "y": {"field": "amount"}},
+    #|             "config": {"width": 480, "height": 240}}
+    #|  }],
+    #|  "artifacts": [{"id": "svg", "kind": "svg", "chart_id": "c"}]
+    #|}
+  let result = manifest_to_render_result_json(manifest)
+  inspect(result.contains("\"kind\":\"svg\""), content="true")
+  inspect(result.contains("<svg"), content="true")
+}

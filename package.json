@@ -12,7 +12,8 @@
     "build:cloudflare-demo-assets": "node scripts/build-cloudflare-demo.mjs",
     "dev:worker": "wrangler dev --env=\"\"",
     "deploy:worker": "wrangler deploy --env production",
-    "deploy:preview-worker": "wrangler deploy --env preview"
+    "deploy:preview-worker": "wrangler deploy --env preview",
+    "test:js": "node --test examples/browser-demo/worker.test.mjs examples/browser-demo/webmcp.test.mjs"
   },
   "devDependencies": {
     "wrangler": "^4.14.4"
