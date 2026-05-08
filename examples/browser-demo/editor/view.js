@@ -99,6 +99,10 @@ export function bindInspector(root, onPatch) {
 
 export function renderPreview(state) {
   const svgArtifact = state.renderResult?.artifacts?.find((artifact) => artifact.kind === "svg");
+  if (!svgArtifact && currentPreviewUrl) {
+    URL.revokeObjectURL(currentPreviewUrl);
+    currentPreviewUrl = null;
+  }
   const artifactSummary = state.renderResult?.artifacts?.length
     ? state.renderResult.artifacts
         .map((artifact) => `${artifact.id} (${artifact.kind})`)

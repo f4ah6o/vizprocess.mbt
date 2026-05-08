@@ -159,6 +159,7 @@ async function boot() {
 }
 
 async function loadManifestSource(source, options = {}) {
+  clearPendingRenderCommit();
   state.source = typeof source === "string" ? source : serializeManifest(source);
   sourceEl.value = state.source;
   if (options.persist !== false) {
@@ -271,7 +272,7 @@ function render() {
 function applyInspectorPatch(field, value) {
   const node = selectedNode(state);
   if (!node) return;
-  clearInvalidJsonField(field);
+  clearInvalidJsonField(field, { rerender: false });
 
   if (state.selection.kind === "dataset") {
     if (field === "pipeline") {
@@ -642,7 +643,7 @@ function parseJsonField(field, input) {
     return JSON.parse(input);
   } catch (error) {
     const message = error instanceof Error ? error.message : String(error);
-    setInvalidJsonField(field, message);
+    setInvalidJsonField(field, message, { rerender: false });
     throw new Error(`Invalid JSON for ${field}: ${message}`);
   }
 }
@@ -664,8 +665,12 @@ function setStatus(message) {
 
 function scheduleVisualCommit() {
   clearPendingRenderCommit();
+  const selectionKey = JSON.stringify(state.selection);
   renderDebounceTimer = setTimeout(() => {
     renderDebounceTimer = null;
+    if (selectionKey !== JSON.stringify(state.selection)) {
+      return;
+    }
     void commitVisualEdit();
   }, 150);
 }
@@ -678,6 +683,7 @@ function clearPendingRenderCommit() {
 }
 
 async function runLatestRequest(statusMessage, task) {
+  clearPendingRenderCommit();
   const token = ++activeRequestToken;
   activeRequestController?.abort();
   const controller = new AbortController();
@@ -738,7 +744,7 @@ function resolveCsvSourceMode(path, opfsPrefix) {
   return "opfs";
 }
 
-function setInvalidJsonField(field, message) {
+function setInvalidJsonField(field, message, options = {}) {
   const diagnostic = {
     code: "INVALID_JSON_FIELD",
     severity: "error",
@@ -749,12 +755,16 @@ function setInvalidJsonField(field, message) {
     ...state.diagnostics.filter((item) => !(item.code === "INVALID_JSON_FIELD" && item.target === field)),
     diagnostic,
   ];
-  render();
+  if (options.rerender !== false) {
+    render();
+  }
 }
 
-function clearInvalidJsonField(field) {
+function clearInvalidJsonField(field, options = {}) {
   state.diagnostics = state.diagnostics.filter(
     (item) => !(item.code === "INVALID_JSON_FIELD" && item.target === field),
   );
-  render();
+  if (options.rerender !== false) {
+    render();
+  }
 }
