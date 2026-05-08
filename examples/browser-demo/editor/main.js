@@ -37,6 +37,8 @@ const inspectorEl = document.getElementById("inspector");
 const previewEl = document.getElementById("preview");
 const workspaceChipEl = document.getElementById("workspace-chip");
 const fileInputEl = document.getElementById("file-input");
+let commitInFlight = null;
+let duckDbConnectionPromise = null;
 
 const fetchReader = browserReader(import.meta.url);
 const disposeWebMcp = registerModelContextTools(createTools());
@@ -71,6 +73,7 @@ document.getElementById("seed-opfs").addEventListener("click", async () => {
   render();
 });
 document.getElementById("add-dataset").addEventListener("click", async () => {
+  if (commitInFlight) return;
   await syncManifestFromSource();
   const draft = createDatasetDraft(state.workspaceId, state.manifest);
   const id = upsertManifestNode(state.manifest, "dataset", draft);
@@ -78,6 +81,7 @@ document.getElementById("add-dataset").addEventListener("click", async () => {
   await commitVisualEdit();
 });
 document.getElementById("add-chart").addEventListener("click", async () => {
+  if (commitInFlight) return;
   await syncManifestFromSource();
   const draft = createChartDraft(state.manifest);
   const id = upsertManifestNode(state.manifest, "chart", draft);
@@ -85,6 +89,7 @@ document.getElementById("add-chart").addEventListener("click", async () => {
   await commitVisualEdit();
 });
 document.getElementById("add-artifact").addEventListener("click", async () => {
+  if (commitInFlight) return;
   await syncManifestFromSource();
   const draft = createArtifactDraft(state.manifest);
   const id = upsertManifestNode(state.manifest, "artifact", draft);
@@ -186,20 +191,20 @@ async function syncManifestFromSource() {
 }
 
 async function resolveCurrentManifest() {
-  const conn = await getDuckDbConnection();
   const opfsPrefix = workspaceFilesPrefix(state.workspaceId);
   const manifest = cloneManifest(state.manifest);
   return prefetchManifestSources(manifest, {
     csvReader: async (path) => {
-      if (path.startsWith("./") || path.startsWith("../") || path.startsWith("/") || path.startsWith("http://") || path.startsWith("https://")) {
-        return fetchReader(path);
-      }
-      if (!path.startsWith(opfsPrefix) && path.includes("/files/")) {
+      if (resolveCsvSourceMode(path, opfsPrefix) === "fetch") {
         return fetchReader(path);
       }
       return readOpfsFile(path);
     },
-    duckdbRunner: async (_db, sql, schema) => duckdbQueryToCsv(conn.conn, sql, schema),
+    duckdbRunner: async (_db, sql, schema) => {
+      duckDbConnectionPromise ??= getDuckDbConnection();
+      const conn = await duckDbConnectionPromise;
+      return duckdbQueryToCsv(conn.conn, sql, schema);
+    },
   });
 }
 
@@ -243,10 +248,18 @@ function applyInspectorPatch(field, value) {
 }
 
 async function commitVisualEdit() {
+  if (commitInFlight) return commitInFlight;
   if (!state.manifest) return;
-  state.source = serializeManifest(state.manifest);
-  sourceEl.value = state.source;
-  await validateAndRenderCurrentSource();
+  commitInFlight = (async () => {
+    state.source = serializeManifest(state.manifest);
+    sourceEl.value = state.source;
+    await validateAndRenderCurrentSource();
+  })();
+  try {
+    await commitInFlight;
+  } finally {
+    commitInFlight = null;
+  }
 }
 
 async function refreshLocalFiles() {
@@ -453,12 +466,13 @@ function createTools() {
         properties: { source: { type: "string" } },
         required: ["source"],
       },
-      execute: async ({ source }) => {
-        state.source = source;
-        sourceEl.value = source;
-        await validateAndRenderCurrentSource();
-        return { ok: true, diagnostics: state.diagnostics };
-      },
+      execute: async ({ source }, client) =>
+        runWithUserInteraction(client, async () => {
+          state.source = source;
+          sourceEl.value = source;
+          await validateAndRenderCurrentSource();
+          return { ok: true, diagnostics: state.diagnostics };
+        }),
     },
     {
       name: "vizprocess-validate-source",
@@ -495,14 +509,15 @@ function createTools() {
           dataset: { type: "object" },
         },
       },
-      execute: async ({ dataset }) => {
-        await syncManifestFromSource();
-        const draft = dataset ?? createDatasetDraft(state.workspaceId, state.manifest);
-        const id = upsertManifestNode(state.manifest, "dataset", draft);
-        updateSelection(state, "dataset", id);
-        await commitVisualEdit();
-        return { ok: true, datasetId: id };
-      },
+      execute: async ({ dataset }, client) =>
+        runWithUserInteraction(client, async () => {
+          await syncManifestFromSource();
+          const draft = dataset ?? createDatasetDraft(state.workspaceId, state.manifest);
+          const id = upsertManifestNode(state.manifest, "dataset", draft);
+          updateSelection(state, "dataset", id);
+          await commitVisualEdit();
+          return { ok: true, datasetId: id };
+        }),
     },
     {
       name: "vizprocess-upsert-chart",
@@ -514,14 +529,15 @@ function createTools() {
           chart: { type: "object" },
         },
       },
-      execute: async ({ chart }) => {
-        await syncManifestFromSource();
-        const draft = chart ?? createChartDraft(state.manifest);
-        const id = upsertManifestNode(state.manifest, "chart", draft);
-        updateSelection(state, "chart", id);
-        await commitVisualEdit();
-        return { ok: true, chartId: id };
-      },
+      execute: async ({ chart }, client) =>
+        runWithUserInteraction(client, async () => {
+          await syncManifestFromSource();
+          const draft = chart ?? createChartDraft(state.manifest);
+          const id = upsertManifestNode(state.manifest, "chart", draft);
+          updateSelection(state, "chart", id);
+          await commitVisualEdit();
+          return { ok: true, chartId: id };
+        }),
     },
     {
       name: "vizprocess-upsert-artifact",
@@ -533,14 +549,15 @@ function createTools() {
           artifact: { type: "object" },
         },
       },
-      execute: async ({ artifact }) => {
-        await syncManifestFromSource();
-        const draft = artifact ?? createArtifactDraft(state.manifest);
-        const id = upsertManifestNode(state.manifest, "artifact", draft);
-        updateSelection(state, "artifact", id);
-        await commitVisualEdit();
-        return { ok: true, artifactId: id };
-      },
+      execute: async ({ artifact }, client) =>
+        runWithUserInteraction(client, async () => {
+          await syncManifestFromSource();
+          const draft = artifact ?? createArtifactDraft(state.manifest);
+          const id = upsertManifestNode(state.manifest, "artifact", draft);
+          updateSelection(state, "artifact", id);
+          await commitVisualEdit();
+          return { ok: true, artifactId: id };
+        }),
     },
     {
       name: "vizprocess-list-local-files",
@@ -594,4 +611,20 @@ function setNested(target, field, value) {
 
 function setStatus(message) {
   statusEl.textContent = message;
+}
+
+function resolveCsvSourceMode(path, opfsPrefix) {
+  if (path.startsWith(opfsPrefix)) {
+    return "opfs";
+  }
+  if (
+    path.startsWith("./") ||
+    path.startsWith("../") ||
+    path.startsWith("/") ||
+    path.startsWith("http://") ||
+    path.startsWith("https://")
+  ) {
+    return "fetch";
+  }
+  return "opfs";
 }

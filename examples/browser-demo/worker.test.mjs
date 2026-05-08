@@ -86,3 +86,26 @@ test("render route returns svg artifacts", async () => {
   assert.equal(result.json.artifacts[0].kind, "svg");
   assert.match(result.json.artifacts[0].content, /<svg/);
 });
+
+test("invalid JSON returns a 400 editor error", async () => {
+  const response = await handleRequest(
+    new Request("https://example.test/api/editor/render", {
+      method: "POST",
+      headers: { "content-type": "application/json" },
+      body: "{",
+    }),
+    createEnv(),
+  );
+  assert.equal(response.status, 400);
+  const json = JSON.parse(await response.text());
+  assert.equal(json.ok, false);
+  assert.equal(json.error.kind, "invalid-json");
+});
+
+test("unknown editor route returns 404 without asset fallback", async () => {
+  const response = await handleRequest(
+    new Request("https://example.test/api/editor/unknown", { method: "GET" }),
+    createEnv(),
+  );
+  assert.equal(response.status, 404);
+});

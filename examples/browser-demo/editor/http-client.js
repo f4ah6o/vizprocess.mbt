@@ -5,6 +5,9 @@ export async function postEditorJson(path, body) {
     body: JSON.stringify(body),
   });
   const text = await response.text();
+  if (!response.ok) {
+    throw new Error(`${path} failed: ${response.status} ${response.statusText}\n${text}`);
+  }
   try {
     return JSON.parse(text);
   } catch (error) {
