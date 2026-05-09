@@ -1,4 +1,4 @@
-# Define Codex App Server process workspace contract for vizprocess.mbt
+# Codex App Server 向け process workspace 契約を定義する
 
 - Status: active
 - Disposition: proposed
@@ -18,37 +18,38 @@
 - Source: created in repo
 
 Created: 2026-05-09
-Model: GPT-5 Codex unknown
+Model: GPT-5 Codex (version unknown)
 
 ## Summary
 
-Define `vizprocess.mbt` の durable `process workspace` contract for Codex App
-Server so a future reusable client can reopen sessions, inspect nodes, validate,
-render, and export without depending on OPFS.
+`vizprocess.mbt` の browser demo を、Codex App Server が reopen / notify /
+request approval できる durable `process workspace` contract として定義する。
+将来の reusable client は OPFS に依存せず、同じ session を reopen して node の
+inspect、validate、render、export を継続できる状態を目指す。
 
 ## Why
 
-`vizprocess.mbt` currently exposes a browser demo with:
+`vizprocess.mbt` にはすでに次の surface がある。
 
 - manifest JSON editing
-- dataset/chart/artifact manipulation
-- validate/render Worker routes
+- dataset / chart / artifact manipulation
+- validate / render Worker routes
 - attachment import
 - OPFS-backed local workspaces
 - browser-side WebMCP tools
 
-これは local prototype としては useful だが、application model が browser-local
-persistence と source resolution に強く結び付いている。Codex App Server 向け
-integration では、clients が reopen / inspect / mutate / export できる durable
-session model が必要になる。
+これは local prototype としては十分だが、application model が browser-local
+persistence と source resolution に強く結び付いている。Codex App Server 向けの
+integration では、client が reopen / inspect / mutate / export できる durable
+session model を先に契約として定義する必要がある。
 
 ## Scope
 
-- editor を App Server-oriented process workspace として再定義する
+- editor を App Server 向け process workspace として再定義する
 - OPFS は target architecture ではなく reference implementation として扱う
 - manifest source、resolved sources、attachments、diagnostics、preview outputs、
   selection を durable session state として定義する
-- validate / render / export / import を App Server tools として定義する
+- validate / render / export / import を App Server tool として定義する
 
 ## Repo-local Source Of Truth
 
@@ -58,7 +59,8 @@ session model が必要になる。
 
 ## Cross-repo Conventions
 
-この issue は `domainprocessschema.mbt` / `papyr.mbt` / shared repo と共通で次を前提にする。
+この issue は `domainprocessschema.mbt` / `papyr.mbt` / shared repo と共通で次を
+前提にする。
 
 - tool naming は `verb_object` 形式
 - read-only tool は snapshot projection か read result を返す
@@ -77,11 +79,12 @@ shared repo へ渡す共通 vocabulary は次。
 - structured diagnostics
 
 repo 固有の source resolution、artifact preview semantics、attachment lifecycle は
-`vizprocess.mbt` 側に残す。
+`vizprocess.mbt` 側に残す。shared repo の正式名称は現時点では
+`codex-app-server-shared` を仮ではなく作業名として固定する。
 
 ## Session Snapshot
 
-The vizprocess session snapshot should use a shape equivalent to:
+process workspace snapshot は少なくとも次の shape を持つ。
 
 ```json
 {
@@ -126,13 +129,13 @@ The vizprocess session snapshot should use a shape equivalent to:
   },
   "diagnostics": [],
   "lastAction": {
-    "kind": "render",
+    "kind": "render_and_persist",
     "completedAt": "2026-05-09T00:00:00Z"
   }
 }
 ```
 
-Required top-level sections are:
+必須の top-level section は次。
 
 - `workspace`
 - `manifest`
@@ -144,9 +147,12 @@ Required top-level sections are:
 - `diagnostics`
 - `lastAction`
 
+`preview.resumeKey` は `"{artifactId}:{renderMode}"` 形式の stable key とし、
+同じ artifact と render mode を reopen した時に同じ key を返す。
+
 ## Read-only Tools
 
-The read-only App Server tools should cover at least:
+read-only tool は少なくとも次を含む。
 
 - `get_session_snapshot() -> ProcessWorkspaceSnapshot`
 - `get_manifest_source() -> { source: string }`
@@ -159,11 +165,11 @@ The read-only App Server tools should cover at least:
 - `get_diagnostics() -> { diagnostics: Diagnostic[] }`
 - `list_artifacts() -> { artifacts: ArtifactSummary[] }`
 
-These operations should not require approval.
+これらは approval 不要とする。
 
 ## Mutating Tools
 
-The mutating App Server tools should cover at least:
+mutating tool は少なくとも次を含む。
 
 - `replace_manifest_source(source) -> { diagnostics: Diagnostic[], snapshot: ProcessWorkspaceSnapshot }`
 - `upsert_dataset_node(node) -> { nodeId: string, snapshot: ProcessWorkspaceSnapshot }`
@@ -176,21 +182,34 @@ The mutating App Server tools should cover at least:
 - `validate_and_persist() -> { normalizedManifest?: object, diagnostics: Diagnostic[], snapshot: ProcessWorkspaceSnapshot }`
 - `render_and_persist() -> { outputs: PreviewOutputSummary[], diagnostics: Diagnostic[], snapshot: ProcessWorkspaceSnapshot }`
 
-Every approval-required action is also a mutating tool.
+approval-required action はすべて mutating tool の subset とする。
 
 ## Approval-required Actions
 
-Approval policy should follow the shared cross-repo rule:
+approval 方針は次。
 
-- `remove_attachment` is approval-required before destructive delete
-- `export_process_bundle` is approval-required only when it writes durable
-  artifacts outside the session
-- future external connector or file-system writes are approval-required
-- inspect / validate / render / read actions are not approval-required
+- `remove_attachment` は destructive delete の前に approval-required
+- `export_process_bundle` は `destination` が unset の時は session 内 export と
+  みなし approval 不要、`destination` が set の時は session 外 durable write と
+  みなし approval-required
+- future external connector / file-system write は approval-required
+- inspect / validate / render-preview / read は approval 不要
+
+## Attachment Lifecycle
+
+attachment persistence backend は OPFS 固定にしない。初期 demo では OPFS を使っても、
+contract 上は次を差し替え可能な boundary として扱う。
+
+- browser-local OPFS
+- in-memory temporary store
+- remote object store
+
+`import_attachment` と `remove_attachment` は backend 固有 API ではなく、stable な
+attachment path と media type を contract の surface とする。
 
 ## Import / Export Artifact
 
-The contract should define these logical envelopes:
+artifact contract は少なくとも次の logical envelope を持つ。
 
 - manifest source bundle
   - JSON object with `workspace`, `manifest`, `selection`
@@ -201,7 +220,7 @@ The contract should define these logical envelopes:
 - diagnostic report bundle
   - JSON object with `diagnostics`, `lastAction`, `workspace`
 
-Allowed `format` values for `export_process_bundle(format, destination?)` are:
+`export_process_bundle(format, destination?)` の `format` は次に固定する。
 
 - `manifest-source`
 - `attachments`
@@ -210,7 +229,7 @@ Allowed `format` values for `export_process_bundle(format, destination?)` are:
 
 ## Diagnostic Shape
 
-The App Server contract should expose a structured diagnostic shape with:
+diagnostic は少なくとも次の field を持つ structured shape とする。
 
 - `code`
 - `severity`
@@ -219,53 +238,56 @@ The App Server contract should expose a structured diagnostic shape with:
 - `hint`
 - `context`
 
+manifest parse、source resolution、validation、render、attachment failure を同じ shape
+で報告する。
+
 ## Selection / Focus State
 
-The contract should expose:
+session resume 用に次を保持する。
 
 - selected node kind
 - selected node id
-- active panel or inspector context when needed
+- active panel or inspector context
 
 ## Preview / Navigation State
 
-The contract should expose preview state as session state, not only as browser DOM.
+preview state は browser DOM ではなく session state として持つ。
 
 - current preview artifact id
 - current render mode
 - navigation among available artifact outputs
-- state needed to reopen the same preview after resume
+- reopen 後に同じ preview を復元する state
 
 ## Shared Repo Relationship
 
-shared repo は reusable client/core、shared approval UX、cross-repo session
-restoration and notification handling を持つ予定だが、この issue 自体は contract
-definition のみを扱い、shared repo の存在を blocker にしない。
+shared repo `codex-app-server-shared` は reusable client/core、shared approval UX、
+cross-repo session restoration、notification handling を持つ予定だが、この issue
+自体は contract definition のみを扱い、shared repo の存在を blocker にしない。
 
 ## Acceptance Criteria
 
-- [ ] The editor surface is specified as an App Server `process workspace`
-      contract rather than an OPFS-first browser demo
-- [ ] A concrete session snapshot shape is defined with named top-level fields
-- [ ] Read-only tools and mutating tools are listed with input/output
-      expectations
-- [ ] approval-required actions are a subset of mutating tools だと明記されている
-- [ ] import/export envelopes, diagnostic shape, selection/focus state, and
-      preview/navigation state are defined
-- [ ] OPFS is explicitly demoted to a reference implementation
-- [ ] The issue is scoped to contract definition and is not blocked on the
-      shared repo already existing
+- [ ] editor surface が OPFS-first browser demo ではなく App Server 向け
+      `process workspace` contract として定義されている
+- [ ] session snapshot shape と `resumeKey` 形式が named field として定義されている
+- [ ] read-only tool と mutating tool が input / output expectation 付きで定義
+      されている
+- [ ] approval-required action が mutating tool の subset であり、`destination`
+      による export 判定主体が明記されている
+- [ ] attachment lifecycle、import/export envelope、diagnostic shape、
+      selection/focus state、preview/navigation state が定義されている
+- [ ] OPFS が reference implementation として明示的に格下げされている
+- [ ] shared repo relationship が `codex-app-server-shared` の名前付きで説明されている
 
 ## Non-goals
 
-- Implementing the shared repo in this issue
-- Implementing a VS Code extension in this repo
-- Treating the current OPFS demo as the target architecture
-- Solving every future storage backend in the first contract draft
+- shared repo 自体をこの issue で実装すること
+- VS Code extension をこの repo で実装すること
+- current OPFS demo を target architecture として固定すること
+- すべての将来 backend を初回契約で解き切ること
 
 ## Rationale
 
-`vizprocess.mbt` already has most of the domain ingredients needed by an
-agent-friendly application: structured manifest editing, source resolution,
-attachment handling, diagnostics, and render artifacts. The missing piece is a
-durable workspace contract that a real App Server client can own.
+`vizprocess.mbt` は structured manifest editing、source resolution、attachment
+handling、diagnostics、render artifacts をすでに持っている。不足しているのは
+durable workspace contract だけであり、ここを先に定義すれば将来の App Server
+client が browser-local 前提を引きずらずに same session を reopen できる。
