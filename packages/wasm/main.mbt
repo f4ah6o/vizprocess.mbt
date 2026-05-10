@@ -103,13 +103,17 @@ fn build_inline_process(
   json_text : String,
 ) -> Result[@vizprocess.VizProcess, String] {
   let csv_reader : (String) -> Result[String, String] = fn(_path) {
-    Err("csv-file is not supported in this worker/api path; resolve to csv-inline first")
+    Err(
+      "csv-file is not supported in this worker/api path; resolve to csv-inline first",
+    )
   }
   let duckdb_runner : (String, String, @pipe.DataSchema) -> Result[
     @pipe.Dataset,
     String,
   ] = fn(_db, _sql, _schema) {
-    Err("duckdb sources are not supported in this worker/api path; resolve to csv-inline first")
+    Err(
+      "duckdb sources are not supported in this worker/api path; resolve to csv-inline first",
+    )
   }
   @vizprocess.build_process_from_json(json_text, csv_reader, duckdb_runner)
 }
