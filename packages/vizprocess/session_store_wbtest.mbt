@@ -54,6 +54,7 @@ test "manifest refresh failure clears derived topology but keeps attachments and
     artifact_id: "svg",
     kind: AkSvg,
     reference: "workspace://preview/svg",
+    resume_key: "svg:svg",
     media_type: artifact_media_type(AkSvg),
   }
   let snapshot = {
@@ -76,7 +77,7 @@ test "manifest refresh failure clears derived topology but keeps attachments and
   inspect(
     snapshot.preview.output,
     content=(
-      #|Some({artifact_id: "svg", kind: AkSvg, reference: "workspace://preview/svg", media_type: "image/svg+xml"})
+      #|Some({artifact_id: "svg", kind: AkSvg, reference: "workspace://preview/svg", resume_key: "svg:svg", media_type: "image/svg+xml"})
     ),
   )
   inspect(snapshot.diagnostics[0].code, content="MANIFEST_INVALID")
@@ -88,6 +89,7 @@ test "preview output stores resumable reference" {
     artifact_id: "model",
     kind: AkRenderModelJson,
     reference: "workspace://preview/model.json",
+    resume_key: "model:render-model-json",
     media_type: artifact_media_type(AkRenderModelJson),
   }
   let snapshot = ProcessWorkspaceSnapshot::empty(
@@ -96,7 +98,7 @@ test "preview output stores resumable reference" {
   inspect(
     snapshot.preview.output,
     content=(
-      #|Some({artifact_id: "model", kind: AkRenderModelJson, reference: "workspace://preview/model.json", media_type: "application/json"})
+      #|Some({artifact_id: "model", kind: AkRenderModelJson, reference: "workspace://preview/model.json", resume_key: "model:render-model-json", media_type: "application/json"})
     ),
   )
   inspect(

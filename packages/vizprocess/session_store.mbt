@@ -72,6 +72,7 @@ pub(all) struct PreviewOutputReference {
   artifact_id : String
   kind : ArtifactKind
   reference : String
+  resume_key : String
   media_type : String
 } derive(Eq, Show)
 

@@ -51,7 +51,8 @@ snapshot, not browser-tab state. Its required sections are `workspace`,
   navigation.
 - `attachments` stores stable `path`, `size`, and `mediaType` metadata.
 - `selection` stores the current node or attachment selection.
-- `preview` stores a resumable output reference for the last render preview.
+- `preview` stores a resumable output reference for the last render preview,
+  including a stable `resumeKey` in `<artifact-id>:<artifact-kind>` form.
 - `diagnostics` stores the current validation and execution diagnostics.
 - `lastAction` records the last state transition applied to the session.
 
