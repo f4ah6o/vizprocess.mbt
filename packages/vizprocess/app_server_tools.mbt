@@ -45,10 +45,18 @@ pub(all) struct AttachmentRemoveInput {
 
 ///|
 pub(all) struct ExternalExportInput {
-  artifact_id : String
+  format : ExportBundleFormat
   destination : String
   reason : String
   now : String
+} derive(Eq, Show)
+
+///|
+pub(all) enum ExportBundleFormat {
+  EbfManifestSource
+  EbfAttachments
+  EbfRenderedArtifacts
+  EbfDiagnosticReport
 } derive(Eq, Show)
 
 ///|
@@ -78,13 +86,54 @@ pub(all) struct ProcessToolApprovalProposal {
   action : String
   description : String
   created_at : String
+  workspace_id : String
+  path : String?
+  size : Int64?
+  effects : Array[String]
+  format : ExportBundleFormat?
+  destination : String?
+  estimated_effects : Array[String]
 } derive(Eq, Show)
 
 ///|
 pub(all) struct ProcessToolPreviewOutput {
   reference : PreviewOutputReference
   content : String
+  content_metadata : PreviewContentMetadata
 } derive(Eq, Show)
+
+///|
+pub(all) struct PreviewContentMetadata {
+  bytes : Int
+  media_type : String
+} derive(Eq, Show)
+
+///|
+pub(all) struct ExportPayloadReference {
+  id : String
+  kind : String
+  reference : String
+  media_type : String
+  size : Int64?
+} derive(Eq, Show)
+
+///|
+pub(all) struct ExportBundleEnvelope {
+  schema : String
+  format : ExportBundleFormat
+  workspace_id : String
+  created_at : String
+  payload_refs : Array[ExportPayloadReference]
+  manifest_source : String?
+  diagnostics : Array[Diagnostic]
+} derive(Eq, Show)
+
+///|
+pub fn ExportBundleEnvelope::to_json(self : ExportBundleEnvelope) -> String {
+  let buf = StringBuilder::new()
+  write_export_bundle_json(buf, self)
+  buf.to_string()
+}
 
 ///|
 pub(all) struct ProcessToolEnvelope {
@@ -381,11 +430,25 @@ pub fn remove_attachment_tool(
   snapshot : ProcessWorkspaceSnapshot,
   input : AttachmentRemoveInput,
 ) -> ProcessToolEnvelope {
+  let attachment = find_attachment(snapshot.attachments, input.path)
+  let size = match attachment {
+    None => None
+    Some(a) => Some(a.size)
+  }
   let proposal : ProcessToolApprovalProposal = {
     id: "approval:attachment.remove:" + input.path,
     action: "attachment.remove",
     description: "Remove attachment '" + input.path + "': " + input.reason,
     created_at: input.now,
+    workspace_id: snapshot.workspace.id,
+    path: Some(input.path),
+    size,
+    effects: [
+      "remove attachment from workspace session", "clear matching attachment selection if selected",
+    ],
+    format: None,
+    destination: None,
+    estimated_effects: [],
   }
   envelope(
     "attachment.remove",
@@ -402,25 +465,82 @@ pub fn export_external_tool(
   snapshot : ProcessWorkspaceSnapshot,
   input : ExternalExportInput,
 ) -> ProcessToolEnvelope {
+  let format_name = export_bundle_format_name(input.format)
   let proposal : ProcessToolApprovalProposal = {
-    id: "approval:artifact.export:" + input.artifact_id,
-    action: "artifact.export.external",
-    description: "Export artifact '" +
-    input.artifact_id +
-    "' to '" +
+    id: "approval:process.export:" + format_name,
+    action: "process.export.external",
+    description: "Export " +
+    format_name +
+    " bundle to '" +
     input.destination +
     "': " +
     input.reason,
     created_at: input.now,
+    workspace_id: snapshot.workspace.id,
+    path: None,
+    size: None,
+    effects: [],
+    format: Some(input.format),
+    destination: Some(input.destination),
+    estimated_effects: estimated_export_effects(snapshot, input.format),
   }
   envelope(
-    "artifact.export.external",
+    "process.export.external",
     PtaApprovalRequired,
     snapshot,
     snapshot.diagnostics,
     Some(proposal),
     None,
   )
+}
+
+///|
+pub fn export_process_bundle(
+  snapshot : ProcessWorkspaceSnapshot,
+  format : ExportBundleFormat,
+  now : String,
+) -> ExportBundleEnvelope {
+  let payload_refs = match format {
+    EbfManifestSource =>
+      [
+        {
+          id: "manifest.source",
+          kind: "manifest-source",
+          reference: "workspace://manifest/source",
+          media_type: "application/json",
+          size: Some(snapshot.manifest.source.length().to_int64()),
+        },
+      ]
+    EbfAttachments => attachment_payload_refs(snapshot.attachments)
+    EbfRenderedArtifacts => preview_payload_refs(snapshot.preview)
+    EbfDiagnosticReport =>
+      [
+        {
+          id: "diagnostics",
+          kind: "diagnostic-report",
+          reference: "workspace://diagnostics/report",
+          media_type: "application/json",
+          size: None,
+        },
+      ]
+  }
+  {
+    schema: "vizprocess.export-bundle.v1",
+    format,
+    workspace_id: snapshot.workspace.id,
+    created_at: now,
+    payload_refs,
+    manifest_source: if format == EbfManifestSource {
+      Some(snapshot.manifest.source)
+    } else {
+      None
+    },
+    diagnostics: if format == EbfDiagnosticReport {
+      snapshot.diagnostics
+    } else {
+      []
+    },
+  }
 }
 
 ///|
@@ -503,6 +623,10 @@ fn render_snapshot(
           let preview : ProcessToolPreviewOutput = {
             reference,
             content: a.content,
+            content_metadata: {
+              bytes: a.content.length(),
+              media_type: artifact_media_type(a.kind),
+            },
           }
           let output_snapshot = if access == PtaReadOnly {
             read_only_projection(snapshot, updated)
@@ -598,6 +722,90 @@ fn severity_name(severity : Severity) -> String {
     ERROR => "error"
     WARNING => "warning"
     INFO => "info"
+  }
+}
+
+///|
+fn export_bundle_format_name(format : ExportBundleFormat) -> String {
+  match format {
+    EbfManifestSource => "manifest-source"
+    EbfAttachments => "attachments"
+    EbfRenderedArtifacts => "rendered-artifacts"
+    EbfDiagnosticReport => "diagnostic-report"
+  }
+}
+
+///|
+fn find_attachment(
+  attachments : Array[AttachmentSummary],
+  path : String,
+) -> AttachmentSummary? {
+  for attachment in attachments {
+    if attachment.path == path {
+      return Some(attachment)
+    }
+  }
+  None
+}
+
+///|
+fn estimated_export_effects(
+  snapshot : ProcessWorkspaceSnapshot,
+  format : ExportBundleFormat,
+) -> Array[String] {
+  match format {
+    EbfManifestSource =>
+      ["write manifest source bundle to external destination"]
+    EbfAttachments =>
+      [
+        "write " +
+        snapshot.attachments.length().to_string() +
+        " attachment reference(s) to external destination",
+      ]
+    EbfRenderedArtifacts =>
+      ["write rendered artifact reference(s) to external destination"]
+    EbfDiagnosticReport =>
+      [
+        "write " +
+        snapshot.diagnostics.length().to_string() +
+        " diagnostic(s) to external destination",
+      ]
+  }
+}
+
+///|
+fn attachment_payload_refs(
+  attachments : Array[AttachmentSummary],
+) -> Array[ExportPayloadReference] {
+  let refs : Array[ExportPayloadReference] = []
+  for attachment in attachments {
+    refs.push({
+      id: attachment.path,
+      kind: "attachment",
+      reference: attachment.path,
+      media_type: attachment.media_type,
+      size: Some(attachment.size),
+    })
+  }
+  refs
+}
+
+///|
+fn preview_payload_refs(
+  preview : PreviewSection,
+) -> Array[ExportPayloadReference] {
+  match preview.output {
+    None => []
+    Some(output) =>
+      [
+        {
+          id: output.artifact_id,
+          kind: artifact_kind_name(output.kind),
+          reference: output.reference,
+          media_type: output.media_type,
+          size: None,
+        },
+      ]
   }
 }
 
@@ -803,8 +1011,22 @@ fn write_approval_json(
       write_json_escaped(buf, a.created_at)
       buf.write_string("\",\"description\":\"")
       write_json_escaped(buf, a.description)
-      buf.write_string("\",\"id\":\"")
+      buf.write_string("\",\"destination\":")
+      write_optional_string_json(buf, a.destination)
+      buf.write_string(",\"effects\":")
+      write_string_array_json(buf, a.effects)
+      buf.write_string(",\"estimatedEffects\":")
+      write_string_array_json(buf, a.estimated_effects)
+      buf.write_string(",\"format\":")
+      write_optional_export_format_json(buf, a.format)
+      buf.write_string(",\"id\":\"")
       write_json_escaped(buf, a.id)
+      buf.write_string("\",\"path\":")
+      write_optional_string_json(buf, a.path)
+      buf.write_string(",\"size\":")
+      write_optional_int64_json(buf, a.size)
+      buf.write_string(",\"workspaceId\":\"")
+      write_json_escaped(buf, a.workspace_id)
       buf.write_string("\"}")
     }
   }
@@ -820,11 +1042,25 @@ fn write_preview_json(
     Some(p) => {
       buf.write_string("{\"content\":\"")
       write_json_escaped(buf, p.content)
-      buf.write_string("\",\"reference\":")
+      buf.write_string("\",\"contentMetadata\":")
+      write_preview_content_metadata_json(buf, p.content_metadata)
+      buf.write_string(",\"reference\":")
       write_preview_reference_value_json(buf, p.reference)
       buf.write_char('}')
     }
   }
+}
+
+///|
+fn write_preview_content_metadata_json(
+  buf : StringBuilder,
+  metadata : PreviewContentMetadata,
+) -> Unit {
+  buf.write_string("{\"bytes\":")
+  buf.write_string(metadata.bytes.to_string())
+  buf.write_string(",\"mediaType\":\"")
+  write_json_escaped(buf, metadata.media_type)
+  buf.write_string("\"}")
 }
 
 ///|
@@ -849,7 +1085,7 @@ fn write_preview_reference_value_json(
   buf.write_string(artifact_kind_name(reference.kind))
   buf.write_string("\",\"mediaType\":\"")
   write_json_escaped(buf, reference.media_type)
-  buf.write_string("\",\"reference\":\"")
+  buf.write_string("\",\"previewRef\":\"")
   write_json_escaped(buf, reference.reference)
   buf.write_string("\"}")
 }
@@ -864,6 +1100,91 @@ fn write_optional_string_json(buf : StringBuilder, value : String?) -> Unit {
       buf.write_char('"')
     }
   }
+}
+
+///|
+fn write_optional_int64_json(buf : StringBuilder, value : Int64?) -> Unit {
+  match value {
+    None => buf.write_string("null")
+    Some(n) => buf.write_string(n.to_string())
+  }
+}
+
+///|
+fn write_optional_export_format_json(
+  buf : StringBuilder,
+  value : ExportBundleFormat?,
+) -> Unit {
+  match value {
+    None => buf.write_string("null")
+    Some(format) => {
+      buf.write_char('"')
+      buf.write_string(export_bundle_format_name(format))
+      buf.write_char('"')
+    }
+  }
+}
+
+///|
+fn write_export_bundle_json(
+  buf : StringBuilder,
+  bundle : ExportBundleEnvelope,
+) -> Unit {
+  buf.write_string("{\"createdAt\":\"")
+  write_json_escaped(buf, bundle.created_at)
+  buf.write_string("\",\"diagnostics\":")
+  write_diagnostics_json(buf, bundle.diagnostics)
+  buf.write_string(",\"format\":\"")
+  buf.write_string(export_bundle_format_name(bundle.format))
+  buf.write_string("\",\"manifestSource\":")
+  write_optional_string_json(buf, bundle.manifest_source)
+  buf.write_string(",\"payloadRefs\":")
+  write_payload_refs_json(buf, bundle.payload_refs)
+  buf.write_string(",\"schema\":\"")
+  write_json_escaped(buf, bundle.schema)
+  buf.write_string("\",\"workspaceId\":\"")
+  write_json_escaped(buf, bundle.workspace_id)
+  buf.write_string("\"}")
+}
+
+///|
+fn write_payload_refs_json(
+  buf : StringBuilder,
+  refs : Array[ExportPayloadReference],
+) -> Unit {
+  buf.write_char('[')
+  for i in 0..<refs.length() {
+    if i > 0 {
+      buf.write_char(',')
+    }
+    let payload_ref = refs[i]
+    buf.write_string("{\"id\":\"")
+    write_json_escaped(buf, payload_ref.id)
+    buf.write_string("\",\"kind\":\"")
+    write_json_escaped(buf, payload_ref.kind)
+    buf.write_string("\",\"mediaType\":\"")
+    write_json_escaped(buf, payload_ref.media_type)
+    buf.write_string("\",\"reference\":\"")
+    write_json_escaped(buf, payload_ref.reference)
+    buf.write_string("\",\"size\":")
+    write_optional_int64_json(buf, payload_ref.size)
+    buf.write_char('}')
+  }
+  buf.write_char(']')
+}
+
+///|
+fn write_string_array_json(buf : StringBuilder, values : Array[String]) -> Unit {
+  buf.write_char('[')
+  for i in 0..<values.length() {
+    if i > 0 {
+      buf.write_char(',')
+    }
+    buf.write_char('"')
+    write_json_escaped(buf, values[i])
+    buf.write_char('"')
+  }
+  buf.write_char(']')
 }
 
 ///|

@@ -44,8 +44,18 @@ test "render preview tool stores resumable output reference" {
     result.snapshot.preview.output.unwrap().reference,
     content="workspace://preview/svg",
   )
+  inspect(result.preview.unwrap().reference.artifact_id, content="svg")
+  inspect(
+    result.preview.unwrap().content_metadata.media_type,
+    content="image/svg+xml",
+  )
   inspect(result.preview.unwrap().reference.media_type, content="image/svg+xml")
   inspect(result.preview.unwrap().content.contains("<svg"), content="true")
+  inspect(
+    result.to_json().contains("\"previewRef\":\"workspace://preview/svg\""),
+    content="true",
+  )
+  inspect(result.to_json().contains("\"contentMetadata\":"), content="true")
   inspect(result.diagnostics.length(), content="0")
 }
 
@@ -114,20 +124,41 @@ test "attachment import tool upserts durable attachment summary" {
 
 ///|
 test "approval required tools propose removal and external export" {
-  let removal = remove_attachment_tool(empty_snapshot(), {
+  let snapshot = {
+    ..empty_snapshot(),
+    attachments: [
+      {
+        path: "workspace://attachments/sales.csv",
+        size: 18L,
+        media_type: "text/csv",
+      },
+    ],
+  }
+  let removal = remove_attachment_tool(snapshot, {
     path: "workspace://attachments/sales.csv",
     reason: "user requested cleanup",
     now: "2026-05-10T09:18:00Z",
   })
   inspect(removal.tool.access, content="PtaApprovalRequired")
   inspect(removal.approval.unwrap().action, content="attachment.remove")
-  inspect(removal.snapshot.attachments.length(), content="0")
+  inspect(removal.approval.unwrap().workspace_id, content="workspace-1")
+  inspect(
+    removal.approval.unwrap().path,
+    content="Some(\"workspace://attachments/sales.csv\")",
+  )
+  inspect(removal.approval.unwrap().size, content="Some(18)")
+  inspect(removal.approval.unwrap().effects.length(), content="2")
+  inspect(removal.snapshot.attachments.length(), content="1")
   inspect(
     removal.to_json().contains("\"access\":\"approval-required\""),
     content="true",
   )
-  let export_result = export_external_tool(empty_snapshot(), {
-    artifact_id: "svg",
+  inspect(
+    removal.to_json().contains("\"workspaceId\":\"workspace-1\""),
+    content="true",
+  )
+  let export_result = export_external_tool(snapshot, {
+    format: EbfRenderedArtifacts,
     destination: "s3://example-bucket/sales.svg",
     reason: "publish approved report",
     now: "2026-05-10T09:19:00Z",
@@ -135,11 +166,96 @@ test "approval required tools propose removal and external export" {
   inspect(export_result.tool.access, content="PtaApprovalRequired")
   inspect(
     export_result.approval.unwrap().action,
-    content="artifact.export.external",
+    content="process.export.external",
+  )
+  inspect(
+    export_result.approval.unwrap().format,
+    content="Some(EbfRenderedArtifacts)",
+  )
+  inspect(
+    export_result.approval.unwrap().destination,
+    content="Some(\"s3://example-bucket/sales.svg\")",
+  )
+  inspect(
+    export_result.approval.unwrap().estimated_effects.length(),
+    content="1",
   )
   inspect(
     export_result.approval.unwrap().id,
-    content="approval:artifact.export:svg",
+    content="approval:process.export:rendered-artifacts",
+  )
+}
+
+///|
+test "export bundle envelopes cover all supported formats" {
+  let snapshot = {
+    ..empty_snapshot(),
+    manifest: { ..empty_snapshot().manifest, source: sample_manifest() },
+    attachments: [
+      {
+        path: "workspace://attachments/sales.csv",
+        size: 18L,
+        media_type: "text/csv",
+      },
+    ],
+    preview: {
+      output: Some({
+        artifact_id: "svg",
+        kind: AkSvg,
+        reference: "workspace://preview/svg",
+        media_type: "image/svg+xml",
+      }),
+    },
+    diagnostics: [
+      Diagnostic::process_error("TEST_DIAG", "$", "fixture diagnostic"),
+    ],
+  }
+  let manifest = export_process_bundle(
+    snapshot,
+    EbfManifestSource,
+    "2026-05-10T09:21:00Z",
+  )
+  inspect(manifest.schema, content="vizprocess.export-bundle.v1")
+  inspect(manifest.payload_refs[0].kind, content="manifest-source")
+  inspect(manifest.manifest_source.unwrap(), content=sample_manifest())
+  inspect(
+    manifest.to_json().contains("\"format\":\"manifest-source\""),
+    content="true",
+  )
+  let attachments = export_process_bundle(
+    snapshot,
+    EbfAttachments,
+    "2026-05-10T09:22:00Z",
+  )
+  inspect(
+    attachments.payload_refs[0].reference,
+    content="workspace://attachments/sales.csv",
+  )
+  inspect(attachments.payload_refs[0].size, content="Some(18)")
+  inspect(
+    attachments.to_json().contains("\"format\":\"attachments\""),
+    content="true",
+  )
+  let rendered = export_process_bundle(
+    snapshot,
+    EbfRenderedArtifacts,
+    "2026-05-10T09:23:00Z",
+  )
+  inspect(rendered.payload_refs[0].id, content="svg")
+  inspect(
+    rendered.to_json().contains("\"format\":\"rendered-artifacts\""),
+    content="true",
+  )
+  let report = export_process_bundle(
+    snapshot,
+    EbfDiagnosticReport,
+    "2026-05-10T09:24:00Z",
+  )
+  inspect(report.diagnostics.length(), content="1")
+  inspect(report.payload_refs[0].kind, content="diagnostic-report")
+  inspect(
+    report.to_json().contains("\"format\":\"diagnostic-report\""),
+    content="true",
   )
 }
 
