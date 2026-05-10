@@ -6,13 +6,15 @@ fn render_manifest_parse_error_json(message : String) -> String {
   builder.write_string("\"processId\":\"\",")
   builder.write_string("\"status\":\"failed\",")
   builder.write_string("\"diagnostics\":[")
-  builder.write_string(render_process_diagnostic_json({
-    source: "process",
-    code: "INVALID_MANIFEST",
-    severity: @vizprocess.ERROR,
-    target: "$",
-    message,
-  }))
+  builder.write_string(
+    render_process_diagnostic_json({
+      source: "process",
+      code: "INVALID_MANIFEST",
+      severity: @vizprocess.ERROR,
+      target: "$",
+      message,
+    }),
+  )
   builder.write_string("],\"artifacts\":[]}")
   builder.to_string()
 }
@@ -24,7 +26,13 @@ fn render_manifest_validation_json(
   let builder = StringBuilder::new()
   builder.write_string("{")
   builder.write_string("\"ok\":")
-  builder.write_string(if execution.status == @vizprocess.EsSuccess { "true" } else { "false" })
+  builder.write_string(
+    if execution.status == @vizprocess.EsSuccess {
+      "true"
+    } else {
+      "false"
+    },
+  )
   builder.write_string(",\"processId\":\"")
   write_process_json_escaped(builder, execution.process_id)
   builder.write_string("\",\"status\":\"")
@@ -42,7 +50,13 @@ fn render_process_execution_json(
   let builder = StringBuilder::new()
   builder.write_string("{")
   builder.write_string("\"ok\":")
-  builder.write_string(if execution.status == @vizprocess.EsSuccess { "true" } else { "false" })
+  builder.write_string(
+    if execution.status == @vizprocess.EsSuccess {
+      "true"
+    } else {
+      "false"
+    },
+  )
   builder.write_string(",\"processId\":\"")
   write_process_json_escaped(builder, execution.process_id)
   builder.write_string("\",\"status\":\"")
@@ -89,7 +103,10 @@ fn render_process_diagnostic_json(
   builder.write_string("\",\"code\":\"")
   write_process_json_escaped(builder, diagnostic.code)
   builder.write_string("\",\"severity\":\"")
-  write_process_json_escaped(builder, render_process_severity(diagnostic.severity))
+  write_process_json_escaped(
+    builder,
+    render_process_severity(diagnostic.severity),
+  )
   builder.write_string("\",\"target\":\"")
   write_process_json_escaped(builder, diagnostic.target)
   builder.write_string("\",\"message\":\"")
@@ -154,9 +171,9 @@ fn write_process_json_escaped(buf : StringBuilder, s : String) -> Unit {
         let code = ch.to_int()
         if code >= 0 && code < 0x20 {
           buf.write_string("\\u")
-          buf.write_string(hex_digit((code / 0x1000) % 0x10))
-          buf.write_string(hex_digit((code / 0x100) % 0x10))
-          buf.write_string(hex_digit((code / 0x10) % 0x10))
+          buf.write_string(hex_digit(code / 0x1000 % 0x10))
+          buf.write_string(hex_digit(code / 0x100 % 0x10))
+          buf.write_string(hex_digit(code / 0x10 % 0x10))
           buf.write_string(hex_digit(code % 0x10))
         } else {
           buf.write_char(ch)

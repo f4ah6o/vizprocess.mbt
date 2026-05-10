@@ -35,6 +35,37 @@ DataSource
   → File / Stdout / Browser / OPFS
 ```
 
+## Process Workspace Session Store
+
+The durable process workspace is a top-level App Server workspace session
+snapshot, not browser-tab state. Its required sections are `workspace`,
+`manifest`, `resolvedSources`, `nodes`, `attachments`, `selection`, `preview`,
+`diagnostics`, and `lastAction`.
+
+- `workspace` identifies the durable workspace, including version and update
+  time.
+- `manifest` stores the raw manifest source plus the last parse / validation
+  status.
+- `resolvedSources` stores source summaries after manifest resolution.
+- `nodes` stores flat dataset / chart / artifact summaries for client
+  navigation.
+- `attachments` stores stable `path`, `size`, and `mediaType` metadata.
+- `selection` stores the current node or attachment selection.
+- `preview` stores a resumable output reference for the last render preview.
+- `diagnostics` stores the current validation and execution diagnostics.
+- `lastAction` records the last state transition applied to the session.
+
+After manifest parse and validation, a valid manifest replaces
+`resolvedSources` and `nodes` from the runnable process snapshot and clears
+manifest diagnostics. An invalid manifest keeps durable attachments, selection,
+and preview output references, but clears derived topology so clients do not
+resume against stale nodes.
+
+The browser demo's OPFS workspace is a reference implementation of this shape.
+It is not the target architecture or the source of truth. Shared clients such
+as VS Code and browser sessions should resume through the App Server workspace
+session contract.
+
 ## Determinism
 
 All artifact output is deterministic:
