@@ -616,6 +616,7 @@ fn render_snapshot(
             artifact_id: a.id,
             kind: a.kind,
             reference: "workspace://preview/" + a.id,
+            resume_key: a.id + ":" + artifact_kind_name(a.kind),
             media_type: artifact_media_type(a.kind),
           }
           updated = updated.set_preview_output(reference, input.now)
@@ -1087,6 +1088,8 @@ fn write_preview_reference_value_json(
   write_json_escaped(buf, reference.media_type)
   buf.write_string("\",\"previewRef\":\"")
   write_json_escaped(buf, reference.reference)
+  buf.write_string("\",\"resumeKey\":\"")
+  write_json_escaped(buf, reference.resume_key)
   buf.write_string("\"}")
 }
 

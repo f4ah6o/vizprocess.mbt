@@ -1,12 +1,12 @@
 # Codex App Server 向け process workspace 契約を定義する
 
-- Status: active
-- Disposition: proposed
+- Status: closed
+- Disposition: implemented
 - GitHub Issue: none
 - GitHub URL: none
 - GitHub State: none
 - Created: 2026-05-09T09:32:00Z
-- Closed: none
+- Closed: 2026-05-10
 - Author: Codex
 - Labels: architecture, app-server, workspace, process
 - Assignees: none
@@ -266,17 +266,30 @@ cross-repo session restoration、notification handling を持つ予定だが、�
 
 ## Acceptance Criteria
 
-- [ ] editor surface が OPFS-first browser demo ではなく App Server 向け
+- [x] editor surface が OPFS-first browser demo ではなく App Server 向け
       `process workspace` contract として定義されている
-- [ ] session snapshot shape と `resumeKey` 形式が named field として定義されている
-- [ ] read-only tool と mutating tool が input / output expectation 付きで定義
+- [x] session snapshot shape と `resumeKey` 形式が named field として定義されている
+- [x] read-only tool と mutating tool が input / output expectation 付きで定義
       されている
-- [ ] approval-required action が mutating tool の subset であり、`destination`
+- [x] approval-required action が mutating tool の subset であり、`destination`
       による export 判定主体が明記されている
-- [ ] attachment lifecycle、import/export envelope、diagnostic shape、
+- [x] attachment lifecycle、import/export envelope、diagnostic shape、
       selection/focus state、preview/navigation state が定義されている
-- [ ] OPFS が reference implementation として明示的に格下げされている
-- [ ] shared repo relationship が `codex-app-server-shared` の名前付きで説明されている
+- [x] OPFS が reference implementation として明示的に格下げされている
+- [x] shared repo relationship が `codex-app-server-shared` の名前付きで説明されている
+
+## Resolution
+
+Child PRs #3、#4、#5 で `packages/vizprocess/session_store.mbt` と
+`packages/vizprocess/app_server_tools.mbt` に durable process workspace snapshot、
+read-only / mutating / approval-required tool envelope、attachment import/remove
+approval、external export approval、manifest / attachment / rendered artifact /
+diagnostic report bundle を追加した。
+
+Closeout では parent contract の `resumeKey` を concrete session field と JSON
+envelope に追加し、`docs/architecture.md` に `<artifact-id>:<artifact-kind>` 形式を
+明記した。OPFS は引き続き browser demo の reference implementation であり、App
+Server workspace session を source of truth とする。
 
 ## Non-goals
 

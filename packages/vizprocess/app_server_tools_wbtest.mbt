@@ -44,6 +44,7 @@ test "render preview tool stores resumable output reference" {
     result.snapshot.preview.output.unwrap().reference,
     content="workspace://preview/svg",
   )
+  inspect(result.snapshot.preview.output.unwrap().resume_key, content="svg:svg")
   inspect(result.preview.unwrap().reference.artifact_id, content="svg")
   inspect(
     result.preview.unwrap().content_metadata.media_type,
@@ -53,6 +54,10 @@ test "render preview tool stores resumable output reference" {
   inspect(result.preview.unwrap().content.contains("<svg"), content="true")
   inspect(
     result.to_json().contains("\"previewRef\":\"workspace://preview/svg\""),
+    content="true",
+  )
+  inspect(
+    result.to_json().contains("\"resumeKey\":\"svg:svg\""),
     content="true",
   )
   inspect(result.to_json().contains("\"contentMetadata\":"), content="true")
@@ -203,6 +208,7 @@ test "export bundle envelopes cover all supported formats" {
         artifact_id: "svg",
         kind: AkSvg,
         reference: "workspace://preview/svg",
+        resume_key: "svg:svg",
         media_type: "image/svg+xml",
       }),
     },
