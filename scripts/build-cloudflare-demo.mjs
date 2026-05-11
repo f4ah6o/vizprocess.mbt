@@ -38,7 +38,7 @@ const filesToCopy = [
   ],
 ];
 
-const indexSource = resolve(browserDemoDir, "index.html");
+const indexSource = resolve(editorDir, "index.html");
 
 if (!existsSync(indexSource) || !existsSync(editorDir)) {
   throw new Error(`Missing required build input: ${indexSource}`);
@@ -60,16 +60,7 @@ for (const [src, dest] of filesToCopy) {
 cpSync(editorDir, resolve(outDir, "editor"), { recursive: true });
 
 let indexHtml = readFileSync(indexSource, "utf8");
-indexHtml = replaceAllExact(
-  indexHtml,
-  "../../_build/js/release/build/wasm/wasm.js",
-  "./wasm.js",
-);
-indexHtml = replaceAllExact(
-  indexHtml,
-  "../../fixtures/datasets/sales.csv",
-  "./fixtures/datasets/sales.csv",
-);
+indexHtml = replaceAllExact(indexHtml, "./main.js", "./editor/main.js");
 writeFileSync(resolve(outDir, "index.html"), indexHtml);
 
 function replaceAllExact(source, search, replacement) {

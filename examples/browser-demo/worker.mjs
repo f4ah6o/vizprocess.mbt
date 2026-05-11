@@ -1,4 +1,5 @@
 let wasmModulePromise;
+const MAX_EDITOR_BODY_BYTES = 256 * 1024;
 
 export default {
   async fetch(request, env) {
@@ -11,13 +12,15 @@ export async function handleRequest(request, env) {
   const wasmModule = url.pathname.startsWith("/api/editor/") ? await loadWasmModule() : null;
 
   if (request.method === "POST" && url.pathname === "/api/editor/validate") {
-    const body = await readJsonBody(request);
-    return jsonText(wasmModule.manifest_to_validation_json(readManifestText(body)));
+    const result = await readJsonBody(request);
+    if (!result.ok) return result.response;
+    return jsonText(wasmModule.manifest_to_validation_json(readManifestText(result.body)));
   }
 
   if (request.method === "POST" && url.pathname === "/api/editor/render") {
-    const body = await readJsonBody(request);
-    return jsonText(wasmModule.manifest_to_render_result_json(readManifestText(body)));
+    const result = await readJsonBody(request);
+    if (!result.ok) return result.response;
+    return jsonText(wasmModule.manifest_to_render_result_json(readManifestText(result.body)));
   }
 
   if (url.pathname.startsWith("/api/editor/")) {
@@ -36,10 +39,27 @@ async function loadWasmModule() {
 }
 
 async function readJsonBody(request) {
+  const length = Number(request.headers.get("content-length") ?? "0");
+  if (length > MAX_EDITOR_BODY_BYTES) {
+    return {
+      ok: false,
+      response: editorError("payload-too-large", `editor payload must be <= ${MAX_EDITOR_BODY_BYTES} bytes`, 413),
+    };
+  }
   try {
-    return await request.json();
-  } catch {
-    return {};
+    const text = await request.text();
+    if (new TextEncoder().encode(text).byteLength > MAX_EDITOR_BODY_BYTES) {
+      return {
+        ok: false,
+        response: editorError("payload-too-large", `editor payload must be <= ${MAX_EDITOR_BODY_BYTES} bytes`, 413),
+      };
+    }
+    return { ok: true, body: text ? JSON.parse(text) : {} };
+  } catch (error) {
+    return {
+      ok: false,
+      response: editorError("invalid-json", error instanceof Error ? error.message : "invalid JSON request body", 400),
+    };
   }
 }
 
@@ -57,4 +77,29 @@ function jsonText(payload) {
       "cache-control": "no-store",
     },
   });
+}
+
+function editorError(kind, message, status) {
+  return new Response(
+    JSON.stringify({
+      ok: false,
+      error: { kind, message },
+      diagnostics: [
+        {
+          source: "worker",
+          code: kind.toUpperCase().replaceAll("-", "_"),
+          severity: "error",
+          target: "$",
+          message,
+        },
+      ],
+    }),
+    {
+      status,
+      headers: {
+        "content-type": "application/json; charset=utf-8",
+        "cache-control": "no-store",
+      },
+    },
+  );
 }

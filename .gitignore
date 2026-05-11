@@ -2,6 +2,7 @@ target/
 .mooncakes/
 _build/
 node_modules/
+.wrangler/
 .DS_Store
 dist/
 *.swp
