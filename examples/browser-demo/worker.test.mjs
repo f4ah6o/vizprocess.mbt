@@ -71,6 +71,21 @@ async function postJson(path, body) {
   };
 }
 
+async function postRaw(path, body, headers = {}) {
+  const response = await handleRequest(
+    new Request(`https://example.test/api/editor/${path}`, {
+      method: "POST",
+      headers,
+      body,
+    }),
+    createEnv(),
+  );
+  return {
+    status: response.status,
+    json: JSON.parse(await response.text()),
+  };
+}
+
 test("validate route returns structured diagnostics", async () => {
   const result = await postJson("validate", { manifest });
   assert.equal(result.status, 200);
@@ -85,4 +100,31 @@ test("render route returns svg artifacts", async () => {
   assert.equal(result.json.ok, true);
   assert.equal(result.json.artifacts[0].kind, "svg");
   assert.match(result.json.artifacts[0].content, /<svg/);
+});
+
+test("editor routes return structured invalid json errors", async () => {
+  const result = await postRaw("validate", "{", { "content-type": "application/json" });
+  assert.equal(result.status, 400);
+  assert.equal(result.json.ok, false);
+  assert.equal(result.json.error.kind, "invalid-json");
+  assert.equal(result.json.diagnostics[0].code, "INVALID_JSON");
+});
+
+test("editor routes reject oversized payloads", async () => {
+  const result = await postRaw("render", "x".repeat(256 * 1024 + 1), {
+    "content-type": "application/json",
+  });
+  assert.equal(result.status, 413);
+  assert.equal(result.json.ok, false);
+  assert.equal(result.json.error.kind, "payload-too-large");
+});
+
+test("editor routes reject oversized content-length before parsing", async () => {
+  const result = await postRaw("render", "{}", {
+    "content-length": String(256 * 1024 + 1),
+    "content-type": "application/json",
+  });
+  assert.equal(result.status, 413);
+  assert.equal(result.json.ok, false);
+  assert.equal(result.json.error.kind, "payload-too-large");
 });

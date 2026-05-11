@@ -1,7 +1,7 @@
 import { getDuckDbConnection, duckdbQueryToCsv } from "../duckdb-loader.mjs";
 import { readOpfsFile } from "../opfs.mjs";
 import { browserReader, prefetchManifestSources } from "../prefetch.mjs";
-import { postEditorJson } from "./http-client.js";
+import { postEditorJson, renderLocally, validateLocally } from "./http-client.js";
 import {
   createWorkspaceId,
   listWorkspaceFiles,
@@ -40,7 +40,9 @@ const fileInputEl = document.getElementById("file-input");
 const validateButton = document.getElementById("validate-button");
 const renderButton = document.getElementById("render-button");
 const resetButton = document.getElementById("reset-button");
-const exportButton = document.getElementById("export-button");
+const exportManifestButton = document.getElementById("export-manifest");
+const exportSvgButton = document.getElementById("export-svg");
+const exportArtifactsButton = document.getElementById("export-artifacts");
 const sampleCsvButton = document.getElementById("sample-csv");
 const sampleDuckDbButton = document.getElementById("sample-duckdb");
 const sampleOpfsButton = document.getElementById("sample-opfs");
@@ -69,13 +71,27 @@ renderButton.addEventListener("click", async () => {
 resetButton.addEventListener("click", async () => {
   await loadManifestSource(buildCsvFixtureManifest());
 });
-exportButton.addEventListener("click", async () => {
-  try {
-    await navigator.clipboard.writeText(state.source);
-    setStatus("Copied manifest JSON to clipboard.");
-  } catch (error) {
-    setStatus(error instanceof Error ? error.message : "Clipboard write failed.");
+exportManifestButton.addEventListener("click", () => {
+  downloadText("vizprocess-manifest.json", state.source, "application/json");
+  setStatus("Downloaded manifest JSON.");
+});
+exportSvgButton.addEventListener("click", () => {
+  const svgArtifact = state.renderResult?.artifacts?.find((artifact) => artifact.kind === "svg");
+  if (!svgArtifact) {
+    setStatus("No SVG artifact is available. Render first.");
+    return;
   }
+  downloadText(`${svgArtifact.id || "vizprocess"}.svg`, svgArtifact.content, "image/svg+xml");
+  setStatus("Downloaded SVG artifact.");
+});
+exportArtifactsButton.addEventListener("click", () => {
+  const artifacts = state.renderResult?.artifacts ?? [];
+  if (artifacts.length === 0) {
+    setStatus("No artifacts are available. Render first.");
+    return;
+  }
+  downloadText("vizprocess-artifacts.json", JSON.stringify(artifacts, null, 2), "application/json");
+  setStatus("Downloaded artifact JSON.");
 });
 sampleCsvButton.addEventListener("click", async () => {
   await loadManifestSource(buildCsvFixtureManifest());
@@ -173,7 +189,7 @@ async function validateCurrentSource() {
     const manifest = await syncManifestFromSource();
     if (!manifest || !isCurrent()) return { ok: false, diagnostics: state.diagnostics };
     state.resolvedManifest = await resolveCurrentManifest();
-    const validation = await postEditorJson("validate", { manifest: state.resolvedManifest }, { signal });
+    const validation = await validateResolvedManifest(state.resolvedManifest, { signal });
     if (!isCurrent()) return null;
     state.diagnostics = validation.diagnostics ?? [];
     state.renderResult = null;
@@ -190,7 +206,7 @@ async function validateAndRenderCurrentSource() {
     const manifest = await syncManifestFromSource();
     if (!manifest || !isCurrent()) return { ok: false, diagnostics: state.diagnostics };
     state.resolvedManifest = await resolveCurrentManifest();
-    const renderResult = await postEditorJson("render", { manifest: state.resolvedManifest }, { signal });
+    const renderResult = await renderResolvedManifest(state.resolvedManifest, { signal });
     if (!isCurrent()) return null;
     state.diagnostics = renderResult.diagnostics ?? [];
     state.renderResult = renderResult;
@@ -241,6 +257,26 @@ async function resolveCurrentManifest() {
       return duckdbQueryToCsv(conn.conn, sql, schema);
     },
   });
+}
+
+async function validateResolvedManifest(manifest, options = {}) {
+  try {
+    return await validateLocally(manifest);
+  } catch (error) {
+    if (options.signal?.aborted) throw error;
+    console.warn("browser-local validate failed; falling back to Worker API", error);
+    return postEditorJson("validate", { manifest }, options);
+  }
+}
+
+async function renderResolvedManifest(manifest, options = {}) {
+  try {
+    return await renderLocally(manifest);
+  } catch (error) {
+    if (options.signal?.aborted) throw error;
+    console.warn("browser-local render failed; falling back to Worker API", error);
+    return postEditorJson("render", { manifest }, options);
+  }
 }
 
 function render() {
@@ -385,7 +421,7 @@ function buildDuckdbManifest() {
             "SELECT month, SUM(amount)::INT AS total FROM (VALUES " +
             "('2026-01','JP',100),('2026-01','US',50)," +
             "('2026-02','JP',200),('2026-02','US',150)," +
-            "('2026-01','JP',75)" +
+            "('2026-03','JP',175),('2026-01','JP',75)" +
             ") AS t(month, region, amount) " +
             "WHERE region = 'JP' GROUP BY month ORDER BY month",
           schema: {
@@ -502,6 +538,18 @@ function createTools() {
         resolvedManifest: state.resolvedManifest,
         renderResult: state.renderResult,
         localFiles: state.localFiles,
+      }),
+    },
+    {
+      name: "vizprocess-export-artifacts",
+      title: "Export vizprocess artifacts",
+      description: "Returns rendered artifacts from the current browser-local render result.",
+      inputSchema: { type: "object", properties: {} },
+      annotations: { readOnlyHint: true },
+      execute: async () => ({
+        ok: Boolean(state.renderResult?.ok),
+        artifacts: state.renderResult?.artifacts ?? [],
+        diagnostics: state.diagnostics,
       }),
     },
     {
@@ -715,7 +763,9 @@ function setBusy(nextBusy) {
     validateButton,
     renderButton,
     resetButton,
-    exportButton,
+    exportManifestButton,
+    exportSvgButton,
+    exportArtifactsButton,
     sampleCsvButton,
     sampleDuckDbButton,
     sampleOpfsButton,
@@ -726,6 +776,17 @@ function setBusy(nextBusy) {
   ]) {
     element.disabled = disabled;
   }
+}
+
+function downloadText(fileName, text, type) {
+  const url = URL.createObjectURL(new Blob([text], { type }));
+  const link = document.createElement("a");
+  link.href = url;
+  link.download = fileName;
+  document.body.append(link);
+  link.click();
+  link.remove();
+  URL.revokeObjectURL(url);
 }
 
 function resolveCsvSourceMode(path, opfsPrefix) {
