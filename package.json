@@ -16,6 +16,6 @@
     "test:js": "node --test examples/browser-demo/worker.test.mjs examples/browser-demo/webmcp.test.mjs"
   },
   "devDependencies": {
-    "wrangler": "^4.14.4"
+    "wrangler": "^4.136.0"
   }
 }
