@@ -20,11 +20,11 @@ Those APIs are browser-editor contracts, not a public persistence API.
 moon build --target js --release
 pnpm install
 pnpm run build:cloudflare-demo-assets
-wrangler dev --env=""
+pnpm run dev:worker
 ```
 
 `worker.mjs` dynamically imports `_build/js/release/build/wasm/wasm.js`, so
-the JS target build must exist before `wrangler dev` or deploy. The
+the JS target build must exist before `cf dev` or `cf deploy`. The
 `build:cloudflare-demo-assets` script now checks that artifact explicitly.
 
 Then open:

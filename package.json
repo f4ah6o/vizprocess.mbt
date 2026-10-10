@@ -10,12 +10,13 @@
   },
   "scripts": {
     "build:cloudflare-demo-assets": "node scripts/build-cloudflare-demo.mjs",
-    "dev:worker": "wrangler dev --env=\"\"",
-    "deploy:worker": "wrangler deploy --env production",
-    "deploy:preview-worker": "wrangler deploy --env preview",
+    "dev:worker": "cf dev",
+    "deploy:worker": "cf deploy --mode production",
+    "deploy:preview-worker": "cf deploy --mode preview",
     "test:js": "node --test examples/browser-demo/worker.test.mjs examples/browser-demo/webmcp.test.mjs"
   },
   "devDependencies": {
+    "cf": "1.0.0-beta.14",
     "wrangler": "^4.136.0"
   }
 }
