@@ -21,18 +21,16 @@ pub fn query_to_dataset(
     columns[f.name] = []
   }
   let mut n_rows = 0
-  let result_box : Ref[@duckdb.QueryResult?] = { val: None }
-  let error_box : Ref[String?] = { val: None }
+  let result_box : Ref[@duckdb.QueryResult?] = { val: None, }
+  let error_box : Ref[String?] = { val: None, }
   @duckdb.connect(path=db_path, on_ready=fn(conn_result) {
     match conn_result {
-      Err(@duckdb.DuckDBError::Message(msg)) =>
-        error_box.val = Some("connect failed: " + msg)
+      Err(err) => error_box.val = Some("connect failed: " + err.message())
       Ok(conn) => {
         conn.query(sql, on_done=fn(query_result) {
           match query_result {
             Ok(qr) => result_box.val = Some(qr)
-            Err(@duckdb.DuckDBError::Message(msg)) =>
-              error_box.val = Some("query failed: " + msg)
+            Err(err) => error_box.val = Some("query failed: " + err.message())
           }
         })
         conn.close(on_done=fn(_) {  })
@@ -98,7 +96,7 @@ pub fn query_to_dataset(
     }
     n_rows = n_rows + 1
   }
-  ({ schema, columns, n_rows }, diags)
+  ({ schema, columns, n_rows, }, diags)
 }
 
 ///|

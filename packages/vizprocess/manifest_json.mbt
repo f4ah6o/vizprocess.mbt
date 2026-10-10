@@ -103,7 +103,7 @@ pub fn build_process_from_json(
       Err(e) => return Err(e)
     }
   }
-  Ok({ id, datasets, charts, artifacts })
+  Ok({ id, datasets, charts, artifacts, })
 }
 
 ///|
@@ -141,7 +141,7 @@ fn parse_dataset_node(
     Ok(p) => p
     Err(e) => return Err(e)
   }
-  Ok({ id, source: raw_dataset, pipeline })
+  Ok({ id, source: raw_dataset, pipeline, })
 }
 
 ///|
@@ -263,7 +263,7 @@ fn parse_schema(
           field_prefix + ".dtype: unsupported dtype '" + dtype_str + "'",
         )
     }
-    fields.push({ name, dtype })
+    fields.push({ name, dtype, })
   }
   Ok({ fields, })
 }
@@ -389,9 +389,9 @@ fn parse_step(json : Json, prefix : String) -> Result[@pipe.PipeStep, String] {
           Ok(s) => s
           Err(e) => return Err(e)
         }
-        measures.push({ field: m_field, op, as_: m_as })
+        measures.push({ field: m_field, op, as_: m_as, })
       }
-      Ok(Aggregate({ group_by, measures }))
+      Ok(Aggregate({ group_by, measures, }))
     }
     _ => Err(prefix + ".type: unknown step type '" + ty + "'")
   }
@@ -453,7 +453,7 @@ fn parse_chart_node(json : Json, prefix : String) -> Result[ChartNode, String] {
     Ok(s) => s
     Err(e) => return Err(e)
   }
-  Ok({ id, dataset_id, chart: spec })
+  Ok({ id, dataset_id, chart: spec, })
 }
 
 ///|
@@ -494,7 +494,7 @@ fn parse_chart_spec(
     Ok(c) => c
     Err(e) => return Err(e)
   }
-  Ok({ id, mark, encoding, config })
+  Ok({ id, mark, encoding, config, })
 }
 
 ///|
@@ -522,7 +522,7 @@ fn parse_encoding(
         Err(e) => return Err(e)
       }
   }
-  Ok({ x, y })
+  Ok({ x, y, })
 }
 
 ///|
@@ -555,7 +555,7 @@ fn parse_chart_config(
     Ok(n) => n
     Err(e) => return Err(e)
   }
-  Ok({ width, height })
+  Ok({ width, height, })
 }
 
 ///|
@@ -585,7 +585,7 @@ fn parse_artifact_node(
     Ok(s) => s
     Err(e) => return Err(e)
   }
-  Ok({ id, kind, chart_id, output: OtMemory })
+  Ok({ id, kind, chart_id, output: OtMemory, })
 }
 
 ///|

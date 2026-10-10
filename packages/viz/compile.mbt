@@ -87,7 +87,7 @@ pub fn compile_chart(spec : ChartSpec, dataset : VizDataset) -> VizResult {
     layers: [],
   }
   if diags.length() > 0 {
-    return { spec, model: empty_model, diagnostics: diags }
+    return { spec, model: empty_model, diagnostics: diags, }
   }
   let x_channel = spec.encoding.x.unwrap()
   let y_channel = spec.encoding.y.unwrap()
@@ -131,7 +131,7 @@ pub fn compile_chart(spec : ChartSpec, dataset : VizDataset) -> VizResult {
         let x = plot_x0 + i * band_step + band_pad
         let h = scale_linear(y_values[i], y_max, plot_h)
         let y = plot_y0 + plot_h - h
-        bars.push({ label: x_categories[i], x, y, width: bar_w, height: h })
+        bars.push({ label: x_categories[i], x, y, width: bar_w, height: h, })
       }
       RectLayer(bars)
     }
@@ -142,7 +142,7 @@ pub fn compile_chart(spec : ChartSpec, dataset : VizDataset) -> VizResult {
         let x = plot_x0 + i * band_step
         let h = scale_linear(y_values[i], y_max, plot_h)
         let y = plot_y0 + plot_h - h
-        points.push({ label: x_categories[i], x, y })
+        points.push({ label: x_categories[i], x, y, })
       }
       LineLayer(points)
     }

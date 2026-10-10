@@ -1,10 +1,11 @@
 import {
-  "f4ah6o/vizprocess/pipe" @pipe,
-  "f4ah6o/vizprocess/vizprocess" @vizprocess,
+  "f4ah6o/vizprocess/pipe",
+  "f4ah6o/vizprocess/vizprocess",
 }
 
+pkgtype(kind: "executable")
+
 options(
-  "is-main": true,
   link: {
     "js": {
       "exports": [

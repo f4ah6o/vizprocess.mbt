@@ -13,9 +13,9 @@ test "golden: csv → select → filter → aggregate → json" {
     #|
   let schema : DataSchema = {
     fields: [
-      { name: "month", dtype: TString },
-      { name: "region", dtype: TString },
-      { name: "amount", dtype: TInt },
+      { name: "month", dtype: TString, },
+      { name: "region", dtype: TString, },
+      { name: "amount", dtype: TInt, },
     ],
   }
   let (dataset, parse_diags) = parse_csv(csv, schema)
@@ -27,7 +27,7 @@ test "golden: csv → select → filter → aggregate → json" {
       Filter("region", EQ, VString("JP")),
       Aggregate({
         group_by: ["month"],
-        measures: [{ field: "amount", op: SUM, as_: "total" }],
+        measures: [{ field: "amount", op: SUM, as_: "total", }],
       }),
     ],
   }
@@ -41,8 +41,8 @@ test "golden: csv → select → filter → aggregate → json" {
 
 ///|
 test "validate_pipeline reports missing field" {
-  let schema : DataSchema = { fields: [{ name: "month", dtype: TString }] }
-  let pipeline : Pipeline = { steps: [Select(["region"])] }
+  let schema : DataSchema = { fields: [{ name: "month", dtype: TString, }], }
+  let pipeline : Pipeline = { steps: [Select(["region"])], }
   let diags = validate_pipeline(schema, pipeline)
   inspect(diags.length(), content="1")
   inspect(diags[0].code, content="FIELD_NOT_FOUND")
@@ -50,8 +50,8 @@ test "validate_pipeline reports missing field" {
 
 ///|
 test "validate_pipeline reports filter type mismatch" {
-  let schema : DataSchema = { fields: [{ name: "amount", dtype: TInt }] }
-  let pipeline : Pipeline = { steps: [Filter("amount", EQ, VString("oops"))] }
+  let schema : DataSchema = { fields: [{ name: "amount", dtype: TInt, }], }
+  let pipeline : Pipeline = { steps: [Filter("amount", EQ, VString("oops"))], }
   let diags = validate_pipeline(schema, pipeline)
   inspect(diags.length(), content="1")
   inspect(diags[0].code, content="FIELD_TYPE_MISMATCH")

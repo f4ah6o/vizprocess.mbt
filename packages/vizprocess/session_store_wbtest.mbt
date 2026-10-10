@@ -22,23 +22,28 @@ test "manifest refresh stores flat dataset chart artifact summaries" {
   ).refresh_manifest("{}", Ok(process), "2026-05-10T09:01:00Z")
   inspect(snapshot.workspace.version, content="2")
   inspect(snapshot.manifest.status, content="MsValid")
-  inspect(snapshot.manifest.process_id, content="Some(\"monthly-sales\")")
+  inspect(
+    snapshot.manifest.process_id,
+    content=(
+      #|Some(monthly-sales)
+    ),
+  )
   inspect(
     snapshot.resolved_sources,
     content=(
-      #|[{dataset_id: "monthly_sales", reference: "dataset:monthly_sales", rows: 1}]
+      #|[{dataset_id: monthly_sales, reference: dataset:monthly_sales, rows: 1}]
     ),
   )
   inspect(
     snapshot.nodes,
     content=(
-      #|[{id: "monthly_sales", kind: NkDataset, input_id: None, output_kind: Some("dataset")}, {id: "sales-bar", kind: NkChart, input_id: Some("monthly_sales"), output_kind: Some("chart")}, {id: "svg", kind: NkArtifact, input_id: Some("sales-bar"), output_kind: Some("svg")}]
+      #|[{id: monthly_sales, kind: NkDataset, input_id: None, output_kind: Some(dataset)}, {id: sales-bar, kind: NkChart, input_id: Some(monthly_sales), output_kind: Some(chart)}, {id: svg, kind: NkArtifact, input_id: Some(sales-bar), output_kind: Some(svg)}]
     ),
   )
   inspect(
     snapshot.last_action,
     content=(
-      #|Some({name: "manifest.refresh", at: "2026-05-10T09:01:00Z"})
+      #|Some({name: manifest.refresh, at: 2026-05-10T09:01:00Z})
     ),
   )
 }
@@ -62,22 +67,27 @@ test "manifest refresh failure clears derived topology but keeps attachments and
       "workspace-1", "Sales workspace", "2026-05-10T09:00:00Z",
     ),
     attachments: [attachment],
-    preview: { output: Some(preview) },
+    preview: { output: Some(preview), },
   }.refresh_manifest("{", Err("invalid json"), "2026-05-10T09:02:00Z")
   inspect(snapshot.manifest.status, content="MsInvalid")
-  inspect(snapshot.manifest.error, content="Some(\"invalid json\")")
+  inspect(
+    snapshot.manifest.error,
+    content=(
+      #|Some(invalid json)
+    ),
+  )
   inspect(snapshot.nodes.length(), content="0")
   inspect(snapshot.resolved_sources.length(), content="0")
   inspect(
     snapshot.attachments[0],
     content=(
-      #|{path: "workspace://attachments/sales.csv", size: 18, media_type: "text/csv"}
+      #|{path: workspace://attachments/sales.csv, size: 18, media_type: text/csv}
     ),
   )
   inspect(
     snapshot.preview.output,
     content=(
-      #|Some({artifact_id: "svg", kind: AkSvg, reference: "workspace://preview/svg", resume_key: "svg:svg", media_type: "image/svg+xml"})
+      #|Some({artifact_id: svg, kind: AkSvg, reference: workspace://preview/svg, resume_key: svg:svg, media_type: image/svg+xml})
     ),
   )
   inspect(snapshot.diagnostics[0].code, content="MANIFEST_INVALID")
@@ -98,13 +108,13 @@ test "preview output stores resumable reference" {
   inspect(
     snapshot.preview.output,
     content=(
-      #|Some({artifact_id: "model", kind: AkRenderModelJson, reference: "workspace://preview/model.json", resume_key: "model:render-model-json", media_type: "application/json"})
+      #|Some({artifact_id: model, kind: AkRenderModelJson, reference: workspace://preview/model.json, resume_key: model:render-model-json, media_type: application/json})
     ),
   )
   inspect(
     snapshot.last_action,
     content=(
-      #|Some({name: "preview.output.set", at: "2026-05-10T09:03:00Z"})
+      #|Some({name: preview.output.set, at: 2026-05-10T09:03:00Z})
     ),
   )
 }
@@ -112,24 +122,24 @@ test "preview output stores resumable reference" {
 ///|
 fn sample_process() -> VizProcess {
   let schema : @pipe.DataSchema = {
-    fields: [{ name: "month", dtype: @pipe.TString }],
+    fields: [{ name: "month", dtype: @pipe.TString, }],
   }
   let columns : Map[String, Array[@pipe.Value]] = Map::new()
   columns["month"] = [@pipe.VString("2026-01")]
-  let dataset : @pipe.Dataset = { schema, columns, n_rows: 1 }
-  let pipeline : @pipe.Pipeline = { steps: [] }
+  let dataset : @pipe.Dataset = { schema, columns, n_rows: 1, }
+  let pipeline : @pipe.Pipeline = { steps: [], }
   let chart : @viz.ChartSpec = {
     id: "sales-bar",
     mark: @viz.BAR,
-    encoding: { x: Some({ field: "month" }), y: None },
+    encoding: { x: Some({ field: "month", }), y: None, },
     config: @viz.ChartConfig::default(),
   }
   {
     id: "monthly-sales",
-    datasets: [{ id: "monthly_sales", source: dataset, pipeline }],
-    charts: [{ id: "sales-bar", dataset_id: "monthly_sales", chart }],
+    datasets: [{ id: "monthly_sales", source: dataset, pipeline, }],
+    charts: [{ id: "sales-bar", dataset_id: "monthly_sales", chart, }],
     artifacts: [
-      { id: "svg", kind: AkSvg, chart_id: "sales-bar", output: OtMemory },
+      { id: "svg", kind: AkSvg, chart_id: "sales-bar", output: OtMemory, },
     ],
   }
 }

@@ -23,7 +23,7 @@ pub fn Diagnostic::process_error(
   target : String,
   message : String,
 ) -> Diagnostic {
-  { source: "process", code, severity: ERROR, target, message }
+  { source: "process", code, severity: ERROR, target, message, }
 }
 
 ///|

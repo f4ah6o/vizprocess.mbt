@@ -10,7 +10,7 @@ test "golden: bar chart RenderModel JSON" {
   let spec : ChartSpec = {
     id: "sales-bar",
     mark: BAR,
-    encoding: { x: Some({ field: "month" }), y: Some({ field: "total" }) },
+    encoding: { x: Some({ field: "month", }), y: Some({ field: "total", }), },
     config: ChartConfig::default(),
   }
   let result = compile_chart(spec, dataset)
@@ -23,11 +23,11 @@ test "golden: bar chart RenderModel JSON" {
 
 ///|
 test "validate_chart reports missing field" {
-  let dataset : VizDataset = { fields: ["month"], rows: [] }
+  let dataset : VizDataset = { fields: ["month"], rows: [], }
   let spec : ChartSpec = {
     id: "x",
     mark: BAR,
-    encoding: { x: Some({ field: "month" }), y: Some({ field: "missing" }) },
+    encoding: { x: Some({ field: "month", }), y: Some({ field: "missing", }), },
     config: ChartConfig::default(),
   }
   let diags = validate_chart(spec, dataset)
@@ -47,7 +47,7 @@ test "golden: bar chart SVG" {
   let spec : ChartSpec = {
     id: "sales-bar",
     mark: BAR,
-    encoding: { x: Some({ field: "month" }), y: Some({ field: "total" }) },
+    encoding: { x: Some({ field: "month", }), y: Some({ field: "total", }), },
     config: ChartConfig::default(),
   }
   let result = compile_chart(spec, dataset)
@@ -70,8 +70,8 @@ test "golden: line chart SVG" {
   let spec : ChartSpec = {
     id: "trend",
     mark: LINE,
-    encoding: { x: Some({ field: "t" }), y: Some({ field: "v" }) },
-    config: { width: 220, height: 120 },
+    encoding: { x: Some({ field: "t", }), y: Some({ field: "v", }), },
+    config: { width: 220, height: 120, },
   }
   let result = compile_chart(spec, dataset)
   let svg = render_svg(result.model)
@@ -96,8 +96,8 @@ test "line mark places one point per row" {
   let spec : ChartSpec = {
     id: "trend",
     mark: LINE,
-    encoding: { x: Some({ field: "t" }), y: Some({ field: "v" }) },
-    config: { width: 220, height: 120 },
+    encoding: { x: Some({ field: "t", }), y: Some({ field: "v", }), },
+    config: { width: 220, height: 120, },
   }
   let result = compile_chart(spec, dataset)
   inspect(result.diagnostics.length(), content="0")

@@ -21,5 +21,5 @@ pub fn dataset_to_viz(d : @pipe.Dataset) -> @viz.VizDataset {
     }
     rows.push(row)
   }
-  { fields, rows }
+  { fields, rows, }
 }
