@@ -31,7 +31,7 @@ pub(all) struct ChartConfig {
 
 ///|
 pub fn ChartConfig::default() -> ChartConfig {
-  { width: 480, height: 240 }
+  { width: 480, height: 240, }
 }
 
 ///|

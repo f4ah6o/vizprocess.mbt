@@ -34,7 +34,7 @@ _require-cloudflare-env:
 
 _require-worker-tooling:
     command -v pnpm >/dev/null 2>&1 || { echo "pnpm is required" >&2; exit 1; }
-    test -x node_modules/.bin/wrangler || { echo 'Run `pnpm install` to install wrangler' >&2; exit 1; }
+    test -x node_modules/.bin/cf || { echo 'Run `pnpm install` to install cf' >&2; exit 1; }
 
 _demo-build: _require-worker-tooling
     moon build --target js --release

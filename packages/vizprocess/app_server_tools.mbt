@@ -264,7 +264,7 @@ pub fn replace_manifest_source_tool(
       error: None,
     },
     diagnostics: [],
-    last_action: Some({ name: "manifest.source.replace", at: input.now }),
+    last_action: Some({ name: "manifest.source.replace", at: input.now, }),
   }
   envelope("manifest.source.replace", PtaMutating, updated, [], None, None)
 }
@@ -295,7 +295,7 @@ pub fn upsert_node_tool(
       updated_at: input.now,
     },
     nodes,
-    last_action: Some({ name: "node.upsert", at: input.now }),
+    last_action: Some({ name: "node.upsert", at: input.now, }),
   }
   envelope("node.upsert", PtaMutating, updated, updated.diagnostics, None, None)
 }
@@ -316,7 +316,7 @@ pub fn select_node_tool(
       node_id: input.node_id,
       attachment_path: input.attachment_path,
     },
-    last_action: Some({ name: "selection.set", at: input.now }),
+    last_action: Some({ name: "selection.set", at: input.now, }),
   }
   envelope(
     "selection.set",
@@ -354,7 +354,7 @@ pub fn import_attachment_tool(
       updated_at: input.now,
     },
     attachments,
-    last_action: Some({ name: "attachment.import", at: input.now }),
+    last_action: Some({ name: "attachment.import", at: input.now, }),
   }
   envelope(
     "attachment.import",
@@ -620,7 +620,7 @@ fn render_snapshot(
             media_type: artifact_media_type(a.kind),
           }
           updated = updated.set_preview_output(reference, input.now)
-          updated = { ..updated, diagnostics: execution.diagnostics }
+          updated = { ..updated, diagnostics: execution.diagnostics, }
           let preview : ProcessToolPreviewOutput = {
             reference,
             content: a.content,
@@ -687,7 +687,7 @@ fn envelope(
   approval : ProcessToolApprovalProposal?,
   preview : ProcessToolPreviewOutput?,
 ) -> ProcessToolEnvelope {
-  { tool: { name, access }, diagnostics, snapshot, approval, preview }
+  { tool: { name, access, }, diagnostics, snapshot, approval, preview, }
 }
 
 ///|

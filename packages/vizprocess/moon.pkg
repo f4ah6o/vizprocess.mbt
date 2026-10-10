@@ -1,5 +1,5 @@
 import {
-  "f4ah6o/vizprocess/pipe" @pipe,
-  "f4ah6o/vizprocess/viz" @viz,
-  "moonbitlang/core/json" @json,
+  "f4ah6o/vizprocess/pipe",
+  "f4ah6o/vizprocess/viz",
+  "moonbitlang/core/json",
 }

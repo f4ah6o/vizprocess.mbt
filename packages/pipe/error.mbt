@@ -23,7 +23,7 @@ pub fn Diagnostic::error(
   target : String,
   message : String,
 ) -> Diagnostic {
-  { code, severity: ERROR, target, message }
+  { code, severity: ERROR, target, message, }
 }
 
 ///|

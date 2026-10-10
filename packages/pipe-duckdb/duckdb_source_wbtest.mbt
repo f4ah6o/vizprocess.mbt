@@ -6,8 +6,8 @@
 test "golden: duckdb read_csv + aggregate matches M1 dataset" {
   let schema : @pipe.DataSchema = {
     fields: [
-      { name: "month", dtype: @pipe.TString },
-      { name: "total", dtype: @pipe.TInt },
+      { name: "month", dtype: @pipe.TString, },
+      { name: "total", dtype: @pipe.TInt, },
     ],
   }
   let sql = "SELECT month, SUM(amount)::INT AS total " +
@@ -28,8 +28,8 @@ test "golden: duckdb read_csv + aggregate matches M1 dataset" {
 test "read_csv_sql renders the expected SELECT" {
   let schema : @pipe.DataSchema = {
     fields: [
-      { name: "month", dtype: @pipe.TString },
-      { name: "amount", dtype: @pipe.TInt },
+      { name: "month", dtype: @pipe.TString, },
+      { name: "amount", dtype: @pipe.TInt, },
     ],
   }
   inspect(
@@ -40,7 +40,9 @@ test "read_csv_sql renders the expected SELECT" {
 
 ///|
 test "query_to_dataset surfaces DuckDB errors as diagnostics" {
-  let schema : @pipe.DataSchema = { fields: [{ name: "x", dtype: @pipe.TInt }] }
+  let schema : @pipe.DataSchema = {
+    fields: [{ name: "x", dtype: @pipe.TInt, }],
+  }
   let (_, diags) = query_to_dataset(
     ":memory:", "SELECT FROM does_not_exist", schema,
   )

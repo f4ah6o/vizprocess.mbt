@@ -104,8 +104,8 @@ test "build_process_from_json invokes duckdb runner for duckdb source" {
     #|  "charts": [],
     #|  "artifacts": []
     #|}
-  let captured_db : Ref[String] = { val: "" }
-  let captured_sql : Ref[String] = { val: "" }
+  let captured_db : Ref[String] = { val: "", }
+  let captured_sql : Ref[String] = { val: "", }
   let reader : (String) -> Result[String, String] = fn(_) { Err("unused") }
   let runner : (String, String, @pipe.DataSchema) -> Result[
     @pipe.Dataset,
@@ -115,7 +115,7 @@ test "build_process_from_json invokes duckdb runner for duckdb source" {
     captured_sql.val = sql
     let cols : Map[String, Array[@pipe.Value]] = Map::new()
     cols["x"] = [@pipe.VInt(42L)]
-    Ok({ schema, columns: cols, n_rows: 1 })
+    Ok({ schema, columns: cols, n_rows: 1, })
   }
   let result = build_process_from_json(manifest, reader, runner)
   match result {
@@ -142,7 +142,7 @@ test "build_process_from_json invokes csv reader for csv-file source" {
     #|  "charts": [],
     #|  "artifacts": []
     #|}
-  let captured : Ref[String] = { val: "" }
+  let captured : Ref[String] = { val: "", }
   let reader : (String) -> Result[String, String] = fn(p) {
     captured.val = p
     Ok("x\nhello\n")

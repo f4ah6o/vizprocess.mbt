@@ -14,7 +14,7 @@ pub fn Dataset::empty(schema : DataSchema) -> Dataset {
   for f in schema.fields {
     columns[f.name] = []
   }
-  { schema, columns, n_rows: 0 }
+  { schema, columns, n_rows: 0, }
 }
 
 ///|

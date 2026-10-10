@@ -101,7 +101,12 @@ test "node upsert tool inserts and replaces node summaries" {
   })
   inspect(second.snapshot.nodes.length(), content="1")
   inspect(second.snapshot.nodes[0].kind, content="NkChart")
-  inspect(second.snapshot.nodes[0].input_id, content="Some(\"dataset-a\")")
+  inspect(
+    second.snapshot.nodes[0].input_id,
+    content=(
+      #|Some(dataset-a)
+    ),
+  )
 }
 
 ///|
@@ -149,7 +154,9 @@ test "approval required tools propose removal and external export" {
   inspect(removal.approval.unwrap().workspace_id, content="workspace-1")
   inspect(
     removal.approval.unwrap().path,
-    content="Some(\"workspace://attachments/sales.csv\")",
+    content=(
+      #|Some(workspace://attachments/sales.csv)
+    ),
   )
   inspect(removal.approval.unwrap().size, content="Some(18)")
   inspect(removal.approval.unwrap().effects.length(), content="2")
@@ -179,7 +186,9 @@ test "approval required tools propose removal and external export" {
   )
   inspect(
     export_result.approval.unwrap().destination,
-    content="Some(\"s3://example-bucket/sales.svg\")",
+    content=(
+      #|Some(s3://example-bucket/sales.svg)
+    ),
   )
   inspect(
     export_result.approval.unwrap().estimated_effects.length(),
@@ -195,7 +204,7 @@ test "approval required tools propose removal and external export" {
 test "export bundle envelopes cover all supported formats" {
   let snapshot = {
     ..empty_snapshot(),
-    manifest: { ..empty_snapshot().manifest, source: sample_manifest() },
+    manifest: { ..empty_snapshot().manifest, source: sample_manifest(), },
     attachments: [
       {
         path: "workspace://attachments/sales.csv",
@@ -293,7 +302,7 @@ fn empty_snapshot() -> ProcessWorkspaceSnapshot {
 fn snapshot_with_manifest() -> ProcessWorkspaceSnapshot {
   {
     ..empty_snapshot(),
-    manifest: { ..empty_snapshot().manifest, source: sample_manifest() },
+    manifest: { ..empty_snapshot().manifest, source: sample_manifest(), },
   }
 }
 

@@ -110,13 +110,13 @@ pub fn ProcessWorkspaceSnapshot::empty(
   now : String,
 ) -> ProcessWorkspaceSnapshot {
   {
-    workspace: { id: workspace_id, title, version: 1, updated_at: now },
-    manifest: { source: "", status: MsUnparsed, process_id: None, error: None },
+    workspace: { id: workspace_id, title, version: 1, updated_at: now, },
+    manifest: { source: "", status: MsUnparsed, process_id: None, error: None, },
     resolved_sources: [],
     nodes: [],
     attachments: [],
-    selection: { node_id: None, attachment_path: None },
-    preview: { output: None },
+    selection: { node_id: None, attachment_path: None, },
+    preview: { output: None, },
     diagnostics: [],
     last_action: None,
   }
@@ -153,7 +153,7 @@ pub fn ProcessWorkspaceSnapshot::refresh_manifest(
         resolved_sources,
         nodes,
         diagnostics: [],
-        last_action: Some({ name: "manifest.refresh", at: now }),
+        last_action: Some({ name: "manifest.refresh", at: now, }),
       }
     }
     Err(message) =>
@@ -177,7 +177,7 @@ pub fn ProcessWorkspaceSnapshot::refresh_manifest(
             "MANIFEST_INVALID", "$", "manifest parse or validation failed",
           ),
         ],
-        last_action: Some({ name: "manifest.refresh", at: now }),
+        last_action: Some({ name: "manifest.refresh", at: now, }),
       }
   }
 }
@@ -195,8 +195,8 @@ pub fn ProcessWorkspaceSnapshot::set_preview_output(
       version: self.workspace.version + 1,
       updated_at: now,
     },
-    preview: { output: Some(output) },
-    last_action: Some({ name: "preview.output.set", at: now }),
+    preview: { output: Some(output), },
+    last_action: Some({ name: "preview.output.set", at: now, }),
   }
 }
 

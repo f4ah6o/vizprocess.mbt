@@ -27,9 +27,9 @@ pub fn build_sales_bar_process(
 ) -> (@vizprocess.VizProcess, Array[@pipe.Diagnostic]) {
   let schema : @pipe.DataSchema = {
     fields: [
-      { name: "month", dtype: @pipe.TString },
-      { name: "region", dtype: @pipe.TString },
-      { name: "amount", dtype: @pipe.TInt },
+      { name: "month", dtype: @pipe.TString, },
+      { name: "region", dtype: @pipe.TString, },
+      { name: "amount", dtype: @pipe.TInt, },
     ],
   }
   let (raw_dataset, parse_diags) = @pipe.parse_csv(csv_text, schema)
@@ -39,20 +39,20 @@ pub fn build_sales_bar_process(
       Filter("region", @pipe.EQ, @pipe.VString("JP")),
       Aggregate({
         group_by: ["month"],
-        measures: [{ field: "amount", op: @pipe.SUM, as_: "total" }],
+        measures: [{ field: "amount", op: @pipe.SUM, as_: "total", }],
       }),
     ],
   }
   let chart : @viz.ChartSpec = {
     id: "sales-bar",
     mark: @viz.BAR,
-    encoding: { x: Some({ field: "month" }), y: Some({ field: "total" }) },
+    encoding: { x: Some({ field: "month", }), y: Some({ field: "total", }), },
     config: @viz.ChartConfig::default(),
   }
   let process : @vizprocess.VizProcess = {
     id: "monthly-sales",
-    datasets: [{ id: "monthly_sales", source: raw_dataset, pipeline }],
-    charts: [{ id: "sales-bar", dataset_id: "monthly_sales", chart }],
+    datasets: [{ id: "monthly_sales", source: raw_dataset, pipeline, }],
+    charts: [{ id: "sales-bar", dataset_id: "monthly_sales", chart, }],
     artifacts: [
       {
         id: "dataset",
@@ -66,7 +66,7 @@ pub fn build_sales_bar_process(
         chart_id: "sales-bar",
         output: OtMemory,
       },
-      { id: "svg", kind: AkSvg, chart_id: "sales-bar", output: OtMemory },
+      { id: "svg", kind: AkSvg, chart_id: "sales-bar", output: OtMemory, },
     ],
   }
   (process, parse_diags)

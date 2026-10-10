@@ -113,7 +113,7 @@ pub fn run_process(p : VizProcess) -> ProcessExecution {
             @pipe.dataset_to_json(datasets.get(dataset_id).unwrap())
           }
         }
-        artifacts.push({ id: node.id, kind: node.kind, content })
+        artifacts.push({ id: node.id, kind: node.kind, content, })
       }
     }
   }
@@ -126,7 +126,7 @@ pub fn run_process(p : VizProcess) -> ProcessExecution {
     }
   }
   let status = if has_error { EsFailed } else { EsSuccess }
-  { process_id: p.id, status, diagnostics, artifacts }
+  { process_id: p.id, status, diagnostics, artifacts, }
 }
 
 ///|

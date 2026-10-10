@@ -96,7 +96,7 @@ pub fn parse_csv(
     }
     n_rows = n_rows + 1
   }
-  ({ schema, columns, n_rows }, diags)
+  ({ schema, columns, n_rows, }, diags)
 }
 
 ///|

@@ -119,7 +119,7 @@ fn cmd_process_run(args : Array[String]) -> Int {
 ///|
 fn read_file(path : String) -> Result[String, String] {
   try @fs.read_file_to_string(path) catch {
-    err => Err(err.to_string())
+    err => Err(@debug.Debug::to_repr(err).to_string())
   } noraise {
     s => Ok(s)
   }
@@ -128,7 +128,7 @@ fn read_file(path : String) -> Result[String, String] {
 ///|
 fn write_file(path : String, content : String) -> Result[Unit, String] {
   try @fs.write_string_to_file(path, content) catch {
-    err => Err(err.to_string())
+    err => Err(@debug.Debug::to_repr(err).to_string())
   } noraise {
     _ => Ok(())
   }
