@@ -5,6 +5,7 @@ version = "0.1.0"
 import {
   "f4ah6o/duckdb@0.7.0",
   "moonbitlang/x@0.5.5",
+  "moonbitlang/quickcheck@0.15.0",
 }
 
 readme = "README.md"
