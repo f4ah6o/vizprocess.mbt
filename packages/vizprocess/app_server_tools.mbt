@@ -104,7 +104,7 @@ pub(all) struct ProcessToolPreviewOutput {
 
 ///|
 pub(all) struct PreviewContentMetadata {
-  bytes : Int
+  bytes : Int32
   media_type : String
 } derive(Eq, Show)
 

@@ -3,8 +3,8 @@
 /// All coordinates are integers so `RenderModel` JSON is byte-stable.
 pub(all) struct RenderModel {
   id : String
-  width : Int
-  height : Int
+  width : Int32
+  height : Int32
   layers : Array[RenderLayer]
 } derive(Eq, Show)
 
@@ -20,15 +20,15 @@ pub(all) enum RenderLayer {
 /// element id.
 pub(all) struct RectMark {
   label : String
-  x : Int
-  y : Int
-  width : Int
-  height : Int
+  x : Int32
+  y : Int32
+  width : Int32
+  height : Int32
 } derive(Eq, Show)
 
 ///|
 pub(all) struct LinePoint {
   label : String
-  x : Int
-  y : Int
+  x : Int32
+  y : Int32
 } derive(Eq, Show)
