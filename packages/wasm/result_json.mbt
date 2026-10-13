@@ -184,7 +184,7 @@ fn write_process_json_escaped(buf : StringBuilder, s : String) -> Unit {
 }
 
 ///|
-fn hex_digit(value : Int) -> String {
+fn hex_digit(value : Int32) -> String {
   let digits = "0123456789abcdef"
   digits[value].to_string()
 }

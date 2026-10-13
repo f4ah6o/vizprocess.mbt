@@ -30,7 +30,7 @@ pub(all) struct VizDataset {
 } derive(Eq, Show)
 
 ///|
-pub fn VizDataset::field_index(self : VizDataset, name : String) -> Int {
+pub fn VizDataset::field_index(self : VizDataset, name : String) -> Int32 {
   for i in 0..<self.fields.length() {
     if self.fields[i] == name {
       return i

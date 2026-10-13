@@ -619,7 +619,7 @@ fn expect_int(
   obj : Map[String, Json],
   key : String,
   path : String,
-) -> Result[Int, String] {
+) -> Result[Int32, String] {
   match obj.get(key) {
     Some(Json::Number(n)) => Ok(n.to_int())
     Some(_) => Err(path + ": expected number")

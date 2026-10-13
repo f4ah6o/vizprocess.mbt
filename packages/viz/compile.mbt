@@ -8,16 +8,16 @@ pub(all) struct VizResult {
 ///|
 /// M2 layout: a fixed 40px gutter on the left and 20px on the other three
 /// sides. The plot area fills the rest.
-let plot_pad_left : Int = 40
+let plot_pad_left : Int32 = 40
 
 ///|
-let plot_pad_top : Int = 20
+let plot_pad_top : Int32 = 20
 
 ///|
-let plot_pad_right : Int = 20
+let plot_pad_right : Int32 = 20
 
 ///|
-let plot_pad_bottom : Int = 20
+let plot_pad_bottom : Int32 = 20
 
 ///|
 /// Validate a chart against a dataset without producing a render model.
@@ -162,7 +162,7 @@ pub fn compile_chart(spec : ChartSpec, dataset : VizDataset) -> VizResult {
 ///|
 /// Round (value / domain * range) to the nearest integer, with ties going
 /// up. Domain is assumed positive; value is clamped at zero.
-fn scale_linear(value : Int64, domain : Int64, range : Int) -> Int {
+fn scale_linear(value : Int64, domain : Int64, range : Int32) -> Int32 {
   if value <= 0L || domain <= 0L {
     return 0
   }
