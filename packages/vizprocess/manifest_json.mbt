@@ -53,7 +53,9 @@ pub fn build_process_from_json(
     String,
   ],
 ) -> Result[VizProcess, String] {
-  let parsed : Result[Json, _] = try? @json.parse(json_text)
+  let parsed : Result[Json, _] = Ok(@json.parse(json_text)) catch {
+    error => Err(error)
+  }
   let root = match parsed {
     Ok(j) => j
     Err(e) => return Err("invalid json: " + e.to_string())
@@ -619,7 +621,7 @@ fn expect_int(
   obj : Map[String, Json],
   key : String,
   path : String,
-) -> Result[Int, String] {
+) -> Result[Int32, String] {
   match obj.get(key) {
     Some(Json::Number(n)) => Ok(n.to_int())
     Some(_) => Err(path + ": expected number")
