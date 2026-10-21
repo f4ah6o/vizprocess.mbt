@@ -3,7 +3,7 @@
 pub(all) struct WorkspaceSection {
   id : String
   title : String
-  version : Int
+  version : Int32
   updated_at : String
 } derive(Eq, Show)
 
@@ -31,7 +31,7 @@ pub(all) struct ManifestSection {
 pub(all) struct ResolvedSourceSummary {
   dataset_id : String
   reference : String
-  rows : Int
+  rows : Int32
 } derive(Eq, Show)
 
 ///|

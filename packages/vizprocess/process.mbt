@@ -150,7 +150,7 @@ fn sort_diagnostics(diags : Array[Diagnostic]) -> Unit {
 }
 
 ///|
-fn compare_diagnostic(a : Diagnostic, b : Diagnostic) -> Int {
+fn compare_diagnostic(a : Diagnostic, b : Diagnostic) -> Int32 {
   if a.source < b.source {
     return -1
   }

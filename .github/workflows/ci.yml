@@ -25,7 +25,13 @@ jobs:
 
       - name: Install DuckDB (macOS)
         if: runner.os == 'macOS'
-        run: brew install duckdb
+        run: |
+          curl -fsSL -o /tmp/libduckdb-osx-universal.zip \
+            https://github.com/duckdb/duckdb/releases/download/v1.5.6/libduckdb-osx-universal.zip
+          unzip -o /tmp/libduckdb-osx-universal.zip -d /tmp/libduckdb
+          sudo mkdir -p /usr/local/lib /usr/local/include
+          sudo cp /tmp/libduckdb/libduckdb.dylib /usr/local/lib/
+          sudo cp /tmp/libduckdb/duckdb.h /usr/local/include/
 
       - name: Install DuckDB (Ubuntu)
         if: runner.os == 'Linux'
@@ -33,7 +39,7 @@ jobs:
           sudo apt-get update
           sudo apt-get install -y curl unzip
           curl -fsSL -o /tmp/libduckdb-linux-amd64.zip \
-            https://github.com/duckdb/duckdb/releases/latest/download/libduckdb-linux-amd64.zip
+            https://github.com/duckdb/duckdb/releases/download/v1.5.6/libduckdb-linux-amd64.zip
           unzip -o /tmp/libduckdb-linux-amd64.zip -d /tmp/libduckdb
           sudo cp /tmp/libduckdb/libduckdb.so /usr/local/lib/
           sudo cp /tmp/libduckdb/duckdb.h /usr/local/include/

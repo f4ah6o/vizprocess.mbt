@@ -3,7 +3,7 @@ name = "f4ah6o/vizprocess"
 version = "0.1.0"
 
 import {
-  "f4ah6o/duckdb@0.7.0",
+  "f4ah6o/duckdb@0.8.0",
   "moonbitlang/x@0.5.5",
 }
 
