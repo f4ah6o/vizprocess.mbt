@@ -25,8 +25,8 @@ pub(all) struct Encoding {
 
 ///|
 pub(all) struct ChartConfig {
-  width : Int
-  height : Int
+  width : Int32
+  height : Int32
 } derive(Eq, Show)
 
 ///|

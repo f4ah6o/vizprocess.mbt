@@ -45,7 +45,7 @@ pub fn dataset_to_json(dataset : Dataset) -> String {
 }
 
 ///|
-fn write_row(buf : StringBuilder, dataset : Dataset, row : Int) -> Unit {
+fn write_row(buf : StringBuilder, dataset : Dataset, row : Int32) -> Unit {
   let names : Array[String] = []
   for f in dataset.schema.fields {
     names.push(f.name)

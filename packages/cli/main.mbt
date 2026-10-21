@@ -8,7 +8,7 @@ fn main {
 ///|
 /// Pure dispatch from argv to an exit code. Splitting it out from `main`
 /// keeps the side-effecting layer thin.
-fn run(args : Array[String]) -> Int {
+fn run(args : Array[String]) -> Int32 {
   if args.length() < 2 {
     print_usage()
     return exit_invalid_input
@@ -49,7 +49,7 @@ fn print_usage() -> Unit {
 }
 
 ///|
-fn cmd_process_run(args : Array[String]) -> Int {
+fn cmd_process_run(args : Array[String]) -> Int32 {
   if args.length() != 4 {
     println("error: process-run requires <manifest.json> <output-dir>")
     return exit_invalid_input

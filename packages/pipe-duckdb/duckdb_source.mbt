@@ -57,7 +57,7 @@ pub fn query_to_dataset(
       return (@pipe.Dataset::empty(schema), diags)
     }
   }
-  let column_indices : Map[String, Int] = Map::new()
+  let column_indices : Map[String, Int32] = Map::new()
   let column_names : Array[String] = qr.columns
   for j in 0..<column_names.length() {
     column_indices[column_names[j]] = j

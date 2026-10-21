@@ -5,7 +5,7 @@
 pub(all) struct Dataset {
   schema : DataSchema
   columns : Map[String, Array[Value]]
-  n_rows : Int
+  n_rows : Int32
 } derive(Eq, Show)
 
 ///|
@@ -19,7 +19,7 @@ pub fn Dataset::empty(schema : DataSchema) -> Dataset {
 
 ///|
 /// Pull the value at `(row, field)` if both bounds are valid.
-pub fn Dataset::cell(self : Dataset, row : Int, field : String) -> Value? {
+pub fn Dataset::cell(self : Dataset, row : Int32, field : String) -> Value? {
   match self.columns.get(field) {
     Some(col) =>
       if row >= 0 && row < col.length() {

@@ -1,22 +1,22 @@
 ///|
 /// Exit codes per the project spec (§20). Kept as separate `let`s so
 /// callers can reference them by name and tests can assert against them.
-pub let exit_ok : Int = 0
+pub let exit_ok : Int32 = 0
 
 ///|
-pub let exit_unexpected : Int = 1
+pub let exit_unexpected : Int32 = 1
 
 ///|
-pub let exit_invalid_input : Int = 2
+pub let exit_invalid_input : Int32 = 2
 
 ///|
-pub let exit_validation_failed : Int = 3
+pub let exit_validation_failed : Int32 = 3
 
 ///|
-pub let exit_source_read_failed : Int = 4
+pub let exit_source_read_failed : Int32 = 4
 
 ///|
-pub let exit_artifact_write_failed : Int = 5
+pub let exit_artifact_write_failed : Int32 = 5
 
 ///|
 /// Build the M4 hardcoded sales-bar process from a CSV string. Until the
@@ -221,7 +221,7 @@ fn sort_strings(arr : Array[String]) -> Unit {
 ///|
 /// Compare two strings lexicographically by code unit. Returns -1, 0, or 1.
 /// MoonBit's `<` / `>` on String compares by length, not lexicographically.
-fn lex_compare(a : String, b : String) -> Int {
+fn lex_compare(a : String, b : String) -> Int32 {
   let la = a.length()
   let lb = b.length()
   let mut i = 0
